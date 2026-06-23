@@ -1,18 +1,71 @@
-Make sure brew is installed on your device
+# Project Setup Guide
 
-install postgree  
+## 1. Install Homebrew
 
+Make sure Homebrew is installed on your system.
+
+Verify the installation:
+
+```bash
+brew --version
+```
+
+## 2. Install PostgreSQL 17
+
+Install PostgreSQL using Homebrew:
+
+```bash
 brew install postgresql@17
+```
 
+Verify the installation:
+
+```bash
 psql --version
+```
 
-go to teminal and go the the project directory and activate the env using command:
+## 3. Navigate to the Project Directory
 
+Open Terminal and move to your project directory:
+
+```bash
+cd /path/to/project
+```
+
+## 4. Activate the Virtual Environment
+
+Activate the Python virtual environment:
+
+```bash
 source venv/bin/activate
+```
 
-install django , django rest framework using the command:
+## 5. Install Project Dependencies
+
+Install Django and Django REST Framework:
+
+```bash
 pip install django djangorestframework
+```
 
-For PostgreSQL support:
+Alternatively, if your project contains a `requirements.txt` file, install all dependencies using:
 
-pip install 'psycopg[binary]'
+```bash
+pip install -r requirements.txt
+```
+
+## 6. Install PostgreSQL Driver
+
+For PostgreSQL support, install the Psycopg driver:
+
+```bash
+pip install "psycopg[binary]"
+```
+
+## 7. Verify Installed Packages
+
+You can verify the installed packages with:
+
+```bash
+pip list
+```
