@@ -6,6 +6,9 @@ from .serializers import UserSerializer
 from rest_framework.response import Response
 from django.contrib.auth import authenticate
 from django.conf import settings
+from .authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import authentication_classes, permission_classes
 import datetime
 import jwt
 
@@ -19,6 +22,8 @@ def create_user(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 @api_view(['GET'])
 def get_user(request):
     email_id = request.query_params.get('email')
@@ -94,27 +99,7 @@ def get_access_token_from_refresh(request):
 
 
 @api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def test(request):
-    auth_header = request.headers.get('Authorization') or request.META.get('HTTP_AUTHORIZATION')
-    if not auth_header:
-        return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    parts = auth_header.split()
-    if len(parts) != 2 or parts[0].lower() != 'bearer':
-        return Response({'error': 'Unauthorized'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    token = parts[1]
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-    except jwt.ExpiredSignatureError:
-        return Response({'error': 'Token expired'}, status=status.HTTP_401_UNAUTHORIZED)
-    except jwt.InvalidTokenError:
-        return Response({'error': 'Invalid token'}, status=status.HTTP_401_UNAUTHORIZED)
-
-    user_id = payload.get('user_id')
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
-        return Response({'error': 'User not found'}, status=status.HTTP_401_UNAUTHORIZED)
-
     return Response({'message': 'Hello World'}, status=status.HTTP_200_OK)
