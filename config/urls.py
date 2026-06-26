@@ -17,12 +17,15 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from users.views import *
+from location_module.views import create_service_location, get_service_location
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # path('admin/', admin.site.urls), # django admin is disabled for this project
     path('auth/create_user', create_user, name='create_user'),
     path('auth/get_user', get_user, name='get_user'),
     path('auth/login', login, name='login'),
     path('auth/test', test, name='test'),
     path('auth/refresh', get_access_token_from_refresh, name='get_access_token_from_refresh'),
+    path('admin/create-service-location', create_service_location, name='create_service_location'),
+    path('get_service_location', get_service_location, name='get_service_location'),
 ]
