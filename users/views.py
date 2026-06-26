@@ -27,7 +27,6 @@ def create_user(request):
 @api_view(['GET'])
 def get_user(request):
     email_id = request.query_params.get('email')
-    print("This is email id", email_id)
     try:
         user = User.objects.get(email=email_id)
     except User.DoesNotExist:
