@@ -44,10 +44,10 @@ class UserServiceLocation(models.Model):
     Relationship table between a user and a service location.
     """
 
-    user = models.ForeignKey(
+    user = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name="service_locations",
+        related_name="service_location",
     )
     service_location = models.ForeignKey(
         ServiceLocation,
@@ -58,12 +58,6 @@ class UserServiceLocation(models.Model):
 
     class Meta:
         db_table = "user_service_locations"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["user", "service_location"],
-                name="unique_user_service_location",
-            )
-        ]
         ordering = ["user", "service_location"]
         verbose_name = "User Service Location"
         verbose_name_plural = "User Service Locations"

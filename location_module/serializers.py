@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import ServiceLocation
+from .models import ServiceLocation, UserServiceLocation
 from django.contrib.gis.geos import Point
 
 
@@ -28,3 +28,17 @@ class NearbyServiceLocationSerializer(serializers.ModelSerializer):
 
     def get_distance_km(self, obj):
         return round(obj.distance_km, 2) if hasattr(obj, 'distance_km') else None
+
+
+class UserServiceLocationSerializer(serializers.ModelSerializer):
+    service_location_id = serializers.PrimaryKeyRelatedField(
+        queryset=ServiceLocation.objects.filter(is_active=True),
+        source='service_location',
+        write_only=True,
+    )
+    service_location = NearbyServiceLocationSerializer(read_only=True)
+
+    class Meta:
+        model = UserServiceLocation
+        fields = ['id', 'service_location_id', 'service_location', 'created_at']
+        read_only_fields = ['id', 'service_location', 'created_at']

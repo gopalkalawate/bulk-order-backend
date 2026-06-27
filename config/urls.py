@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from users.views import *
-from location_module.views import create_service_location, get_service_location
+from location_module.views import create_service_location, get_service_location, set_user_service_location
 
 urlpatterns = [
     # path('admin/', admin.site.urls), # django admin is disabled for this project
@@ -28,4 +28,5 @@ urlpatterns = [
     path('auth/refresh', get_access_token_from_refresh, name='get_access_token_from_refresh'),
     path('admin/create-service-location', create_service_location, name='create_service_location'),
     path('get_service_location', get_service_location, name='get_service_location'),
+    path('set_user_service_location', set_user_service_location, name='set_user_service_location'),
 ]

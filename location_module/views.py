@@ -6,8 +6,8 @@ from rest_framework import status
 from rest_framework.response import Response
 
 from users.authentication import JWTAuthentication
-from .models import ServiceLocation
-from .serializers import NearbyServiceLocationSerializer, ServiceLocationSerializer
+from .models import ServiceLocation, UserServiceLocation
+from .serializers import NearbyServiceLocationSerializer, ServiceLocationSerializer, UserServiceLocationSerializer
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import authentication_classes, permission_classes
 
@@ -51,3 +51,22 @@ def get_service_location(request):
 
     serializer = NearbyServiceLocationSerializer(nearby_locations, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def set_user_service_location(request):
+    serializer = UserServiceLocationSerializer(data=request.data)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    service_location = serializer.validated_data['service_location']
+    user_service_location, created = UserServiceLocation.objects.update_or_create(
+        user=request.user,
+        defaults={'service_location': service_location},
+    )
+
+    response_serializer = UserServiceLocationSerializer(user_service_location)
+    response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+    return Response(response_serializer.data, status=response_status)
