@@ -1,0 +1,230 @@
+-- ============================================================
+-- Aggregated Ordering System — Schema
+-- PostgreSQL 14+ with PostGIS
+-- ============================================================
+
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS pg_trgm; -- optional, useful for fuzzy/typo-tolerant search later
+
+-- ------------------------------------------------------------
+-- 1. LOCATIONS
+-- ------------------------------------------------------------
+CREATE TABLE locations (
+    location_id     BIGSERIAL PRIMARY KEY,
+    name             VARCHAR(255) NOT NULL,
+    address          TEXT,
+    geom             GEOGRAPHY(Point, 4326) NOT NULL,
+    timezone         VARCHAR(64) NOT NULL DEFAULT 'Asia/Kolkata',
+    is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_locations_geom ON locations USING GIST (geom);
+
+-- ------------------------------------------------------------
+-- 2. USERS  (assumption: one active "home" location per user;
+--    switch to a join table if users can belong to many locations)
+-- ------------------------------------------------------------
+CREATE TABLE users (
+    user_id          BIGSERIAL PRIMARY KEY,
+    name             VARCHAR(255) NOT NULL,
+    email            VARCHAR(255) UNIQUE NOT NULL,
+    phone            VARCHAR(20),
+    location_id      BIGINT NOT NULL REFERENCES locations(location_id),
+    is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_users_location ON users(location_id);
+
+-- ------------------------------------------------------------
+-- 3. ITEM CATALOG (with full text search)
+-- ------------------------------------------------------------
+CREATE TABLE item_categories (
+    category_id         BIGSERIAL PRIMARY KEY,
+    name                 VARCHAR(150) NOT NULL,
+    parent_category_id   BIGINT REFERENCES item_categories(category_id)
+);
+
+CREATE TABLE items (
+    item_id          BIGSERIAL PRIMARY KEY,
+    name             VARCHAR(255) NOT NULL,
+    description      TEXT,
+    category_id      BIGINT REFERENCES item_categories(category_id),
+    unit             VARCHAR(50) NOT NULL DEFAULT 'unit',   -- e.g. piece, kg, box
+    image_url        TEXT,
+    is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    search_vector    tsvector GENERATED ALWAYS AS (
+                         setweight(to_tsvector('english', coalesce(name, '')), 'A') ||
+                         setweight(to_tsvector('english', coalesce(description, '')), 'B')
+                     ) STORED
+);
+CREATE INDEX idx_items_search   ON items USING GIN (search_vector);
+CREATE INDEX idx_items_category ON items(category_id);
+CREATE INDEX idx_items_name_trgm ON items USING GIN (name gin_trgm_ops); -- fuzzy matching support
+
+-- ------------------------------------------------------------
+-- 4. VENDORS
+-- ------------------------------------------------------------
+CREATE TABLE vendors (
+    vendor_id        BIGSERIAL PRIMARY KEY,
+    name             VARCHAR(255) NOT NULL,
+    contact_email    VARCHAR(255),
+    contact_phone    VARCHAR(20),
+    geom             GEOGRAPHY(Point, 4326),
+    rating           NUMERIC(3,2),
+    is_active        BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_vendors_geom ON vendors USING GIST (geom);
+
+-- which vendors are eligible to serve which locations (static allow-list;
+-- alternatively derive dynamically with ST_DWithin on geom)
+CREATE TABLE vendor_serviceable_locations (
+    vendor_id    BIGINT NOT NULL REFERENCES vendors(vendor_id),
+    location_id  BIGINT NOT NULL REFERENCES locations(location_id),
+    PRIMARY KEY (vendor_id, location_id)
+);
+
+-- which items a vendor can supply at all (used to decide who to invite to quote)
+CREATE TABLE vendor_items (
+    vendor_id  BIGINT NOT NULL REFERENCES vendors(vendor_id),
+    item_id    BIGINT NOT NULL REFERENCES items(item_id),
+    PRIMARY KEY (vendor_id, item_id)
+);
+
+-- ------------------------------------------------------------
+-- 5. ORDER CYCLES  (the aggregation window, per location)
+-- ------------------------------------------------------------
+CREATE TYPE cycle_status AS ENUM (
+    'open', 'closed', 'quoting', 'vendor_selected', 'placed', 'fulfilled', 'cancelled'
+);
+
+CREATE TABLE order_cycles (
+    cycle_id            BIGSERIAL PRIMARY KEY,
+    location_id         BIGINT NOT NULL REFERENCES locations(location_id),
+    cycle_date          DATE NOT NULL,
+    order_window_start  TIMESTAMPTZ NOT NULL,
+    order_window_end    TIMESTAMPTZ NOT NULL,
+    status              cycle_status NOT NULL DEFAULT 'open',
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (location_id, cycle_date)   -- one cycle per location per day; drop/adjust if multiple cycles/day (e.g. lunch + dinner)
+);
+CREATE INDEX idx_order_cycles_location_status ON order_cycles(location_id, status);
+
+-- ------------------------------------------------------------
+-- 6. INDIVIDUAL USER ORDERS
+-- ------------------------------------------------------------
+CREATE TYPE user_order_status AS ENUM ('pending', 'confirmed', 'cancelled');
+
+CREATE TABLE user_orders (
+    user_order_id  BIGSERIAL PRIMARY KEY,
+    cycle_id       BIGINT NOT NULL REFERENCES order_cycles(cycle_id),
+    user_id        BIGINT NOT NULL REFERENCES users(user_id),
+    status         user_order_status NOT NULL DEFAULT 'pending',
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (cycle_id, user_id)   -- one order per user per cycle
+);
+
+CREATE TABLE user_order_items (
+    user_order_item_id  BIGSERIAL PRIMARY KEY,
+    user_order_id       BIGINT NOT NULL REFERENCES user_orders(user_order_id) ON DELETE CASCADE,
+    item_id             BIGINT NOT NULL REFERENCES items(item_id),
+    quantity            NUMERIC(10,2) NOT NULL CHECK (quantity > 0),
+    notes                TEXT,
+    UNIQUE (user_order_id, item_id)
+);
+
+-- ------------------------------------------------------------
+-- 7. AGGREGATION SNAPSHOT
+--    Locked once the cycle closes, so quoting happens against
+--    stable quantities even if something edits later.
+-- ------------------------------------------------------------
+CREATE TABLE aggregated_order_items (
+    agg_order_item_id      BIGSERIAL PRIMARY KEY,
+    cycle_id               BIGINT NOT NULL REFERENCES order_cycles(cycle_id),
+    item_id                BIGINT NOT NULL REFERENCES items(item_id),
+    total_quantity         NUMERIC(12,2) NOT NULL,
+    selected_quote_item_id BIGINT,  -- FK added below, after vendor_quote_items exists
+    UNIQUE (cycle_id, item_id)
+);
+
+-- ------------------------------------------------------------
+-- 8. VENDOR QUOTES
+-- ------------------------------------------------------------
+CREATE TYPE quote_status AS ENUM ('invited', 'submitted', 'rejected', 'partially_selected', 'selected');
+
+CREATE TABLE vendor_quotes (
+    quote_id      BIGSERIAL PRIMARY KEY,
+    cycle_id      BIGINT NOT NULL REFERENCES order_cycles(cycle_id),
+    vendor_id     BIGINT NOT NULL REFERENCES vendors(vendor_id),
+    status        quote_status NOT NULL DEFAULT 'invited',
+    submitted_at  TIMESTAMPTZ,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (cycle_id, vendor_id)
+);
+
+CREATE TABLE vendor_quote_items (
+    quote_item_id       BIGSERIAL PRIMARY KEY,
+    quote_id             BIGINT NOT NULL REFERENCES vendor_quotes(quote_id) ON DELETE CASCADE,
+    item_id              BIGINT NOT NULL REFERENCES items(item_id),
+    unit_price           NUMERIC(10,2) NOT NULL CHECK (unit_price >= 0),
+    available_quantity   NUMERIC(12,2),  -- null = vendor can fully cover the requested quantity
+    UNIQUE (quote_id, item_id)
+);
+
+ALTER TABLE aggregated_order_items
+    ADD CONSTRAINT fk_selected_quote_item
+    FOREIGN KEY (selected_quote_item_id) REFERENCES vendor_quote_items(quote_item_id);
+
+-- ------------------------------------------------------------
+-- 9. PURCHASE ORDERS  (placed to the winning vendor(s))
+--    A cycle can produce multiple POs if different items win
+--    with different vendors.
+-- ------------------------------------------------------------
+CREATE TYPE po_status AS ENUM ('placed', 'acknowledged', 'in_transit', 'delivered', 'cancelled');
+
+CREATE TABLE purchase_orders (
+    po_id          BIGSERIAL PRIMARY KEY,
+    cycle_id       BIGINT NOT NULL REFERENCES order_cycles(cycle_id),
+    vendor_id      BIGINT NOT NULL REFERENCES vendors(vendor_id),
+    status         po_status NOT NULL DEFAULT 'placed',
+    placed_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    total_amount   NUMERIC(12,2) NOT NULL DEFAULT 0,
+    UNIQUE (cycle_id, vendor_id)
+);
+
+CREATE TABLE purchase_order_items (
+    po_item_id          BIGSERIAL PRIMARY KEY,
+    po_id                BIGINT NOT NULL REFERENCES purchase_orders(po_id) ON DELETE CASCADE,
+    agg_order_item_id    BIGINT NOT NULL REFERENCES aggregated_order_items(agg_order_item_id),
+    quantity             NUMERIC(12,2) NOT NULL,
+    unit_price           NUMERIC(10,2) NOT NULL,
+    line_total           NUMERIC(12,2) GENERATED ALWAYS AS (quantity * unit_price) STORED
+);
+
+-- ============================================================
+-- HELPER VIEWS / QUERIES
+-- ============================================================
+
+-- Live aggregation while a cycle is still open (before the snapshot is taken)
+CREATE VIEW v_live_aggregation AS
+SELECT uo.cycle_id, uoi.item_id, SUM(uoi.quantity) AS total_quantity
+FROM user_orders uo
+JOIN user_order_items uoi ON uoi.user_order_id = uo.user_order_id
+WHERE uo.status = 'confirmed'
+GROUP BY uo.cycle_id, uoi.item_id;
+
+-- Example: pick the lowest-price vendor per item for a given cycle
+-- SELECT DISTINCT ON (vqi.item_id)
+--     vqi.item_id, vqi.quote_item_id, vq.vendor_id, vqi.unit_price
+-- FROM vendor_quote_items vqi
+-- JOIN vendor_quotes vq ON vq.quote_id = vqi.quote_id
+-- WHERE vq.cycle_id = :cycle_id
+-- ORDER BY vqi.item_id, vqi.unit_price ASC;
+
+-- Example: full text search on items
+-- SELECT item_id, name, ts_rank(search_vector, query) AS rank
+-- FROM items, plainto_tsquery('english', :search_term) query
+-- WHERE search_vector @@ query
+-- ORDER BY rank DESC
+-- LIMIT 20;
