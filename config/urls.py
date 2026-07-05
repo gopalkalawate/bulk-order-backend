@@ -18,6 +18,13 @@ from django.contrib import admin
 from django.urls import path
 from users.views import *
 from location_module.views import create_service_location, get_service_location, set_user_service_location
+from vendors.views import (
+    add_serviceable_location,
+    create_vendor,
+    get_service_locations,
+    remove_serviceable_location,
+    set_vendor_location,
+)
 
 urlpatterns = [
     # path('admin/', admin.site.urls), # django admin is disabled for this project
@@ -29,4 +36,9 @@ urlpatterns = [
     path('admin/create-service-location', create_service_location, name='create_service_location'),
     path('get_service_location', get_service_location, name='get_service_location'),
     path('set_user_service_location', set_user_service_location, name='set_user_service_location'),
+    path('vendors/create_vendor', create_vendor, name='create_vendor'),
+    path('vendors/set-vendor-location', set_vendor_location, name='set_vendor_location'),
+    path('vendors/get-service-locations', get_service_locations, name='get_vendor_service_locations'),
+    path('vendors/add-serviceable-location', add_serviceable_location, name='add_serviceable_location'),
+    path('vendors/remove-serviceable-location', remove_serviceable_location, name='remove_serviceable_location'),
 ]
