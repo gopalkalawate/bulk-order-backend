@@ -7,7 +7,7 @@ class Vendor(models.Model):
     id = models.BigAutoField(primary_key=True, db_column="vendor_id")
     name = models.CharField(max_length=255)
     email = models.EmailField(blank=True, null=True)
-    phone = models.CharField(max_length=20, blank=True, null=True)
+    phone = models.CharField(max_length=20)
     location = models.PointField(geography=True, srid=4326, blank=True, null=True)
     home_service_location = models.ForeignKey(
         ServiceLocation,
