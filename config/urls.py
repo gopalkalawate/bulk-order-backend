@@ -25,6 +25,7 @@ from vendors.views import (
     remove_serviceable_location,
     set_vendor_location,
 )
+from items.views import create_item, create_item_category, search_items, update_item
 
 urlpatterns = [
     # path('admin/', admin.site.urls), # django admin is disabled for this project
@@ -41,4 +42,8 @@ urlpatterns = [
     path('vendors/get-service-locations', get_service_locations, name='get_vendor_service_locations'),
     path('vendors/add-serviceable-location', add_serviceable_location, name='add_serviceable_location'),
     path('vendors/remove-serviceable-location', remove_serviceable_location, name='remove_serviceable_location'),
+    path('items/create-category', create_item_category, name='create_item_category'),
+    path('items/create-item', create_item, name='create_item'),
+    path('items/search', search_items, name='search_items'),
+    path('items/<int:item_id>', update_item, name='update_item'),
 ]

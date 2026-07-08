@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 
+from config.cache_utils import bump_vendor_cache_version
 from vendors.models import VendorServiceableLocation
 from vendors.serializers import VendorServiceableLocationSerializer
 
@@ -27,5 +28,7 @@ class RemoveServiceableLocationHelper:
 
         if deleted_count == 0:
             return Response({"error": "Vendor serviceable location not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        bump_vendor_cache_version(vendor.id)
 
         return Response(status=status.HTTP_204_NO_CONTENT)

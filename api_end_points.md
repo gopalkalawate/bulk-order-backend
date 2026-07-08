@@ -1,5 +1,150 @@
 # API Endpoints
 
+## Items
+
+All item endpoints require JWT authentication.
+
+Header:
+
+```http
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+### Create Item Category
+
+`POST /items/create-category`
+
+Request body:
+
+```json
+{
+  "name": "Vegetables"
+}
+```
+
+Example response:
+
+```json
+{
+  "category_id": 1,
+  "name": "Vegetables"
+}
+```
+
+Curl:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/items/create-category" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Vegetables"
+  }'
+```
+
+### Create Item
+
+`POST /items/create-item`
+
+Creates a catalog item. `quantity` must be greater than zero. `image_url` is accepted for now; uploaded image-to-S3 handling will be added later.
+
+Request body:
+
+```json
+{
+  "name": "Tomato",
+  "description": "Fresh red tomato",
+  "category_id": 1,
+  "quantity": "5.50",
+  "unit": "kg",
+  "image_url": "https://example.com/tomato.jpg"
+}
+```
+
+Example response:
+
+```json
+{
+  "item_id": 1,
+  "name": "Tomato",
+  "description": "Fresh red tomato",
+  "category": {
+    "category_id": 1,
+    "name": "Vegetables"
+  },
+  "quantity": "5.50",
+  "unit": "kg",
+  "image_url": "https://example.com/tomato.jpg",
+  "is_active": true,
+  "created_at": "2026-07-09T12:00:00Z"
+}
+```
+
+Curl:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/items/create-item" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Tomato",
+    "description": "Fresh red tomato",
+    "category_id": 1,
+    "quantity": "5.50",
+    "unit": "kg",
+    "image_url": "https://example.com/tomato.jpg"
+  }'
+```
+
+### Search Items
+
+`GET /items/search?q=tomto&category_id=1&is_active=true&limit=20`
+
+Searches catalog items with PostgreSQL full-text search plus trigram fuzzy matching for typo tolerance.
+
+Query params:
+
+```text
+q=rice
+category_id=1
+is_active=true
+limit=20
+```
+
+Curl:
+
+```bash
+curl -X GET "http://127.0.0.1:8000/items/search?q=tomato&category_id=1&is_active=true&limit=20" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Update Item
+
+`PATCH /items/<item_id>`
+
+Partially updates an item.
+
+Request body:
+
+```json
+{
+  "quantity": "7.25",
+  "image_url": "https://example.com/new-tomato.jpg"
+}
+```
+
+Curl:
+
+```bash
+curl -X PATCH "http://127.0.0.1:8000/items/1" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "quantity": "7.25",
+    "image_url": "https://example.com/new-tomato.jpg"
+  }'
+```
+
 ## Vendors
 
 All vendor endpoints require JWT authentication.

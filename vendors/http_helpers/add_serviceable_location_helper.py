@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.response import Response
 
+from config.cache_utils import bump_vendor_cache_version
 from vendors.models import VendorServiceableLocation
 from vendors.serializers import VendorServiceableLocationSerializer
 
@@ -17,6 +18,9 @@ class AddServiceableLocationHelper:
             vendor=vendor,
             service_location=service_location,
         )
+
+        if created:
+            bump_vendor_cache_version(vendor.id)
 
         response_status = status.HTTP_201_CREATED if created else status.HTTP_200_OK
         response_serializer = VendorServiceableLocationSerializer(vendor_serviceable_location)

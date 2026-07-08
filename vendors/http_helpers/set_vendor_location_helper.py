@@ -2,6 +2,7 @@ from django.contrib.gis.geos import Point
 from rest_framework import status
 from rest_framework.response import Response
 
+from config.cache_utils import bump_vendor_cache_version
 from vendors.models import VendorServiceableLocation
 from vendors.serializers import SetVendorLocationSerializer, VendorSerializer
 
@@ -26,5 +27,7 @@ class SetVendorLocationHelper:
             vendor=vendor,
             service_location=service_location,
         )
+
+        bump_vendor_cache_version(vendor.id)
 
         return Response(VendorSerializer(vendor).data, status=status.HTTP_200_OK)

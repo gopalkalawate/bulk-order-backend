@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -41,8 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.postgres',
     "rest_framework",
     "users",
-    "location_module",
+    "location_module.apps.LocationModuleConfig",
     "vendors",
+    "items.apps.ItemsConfig",
 ]
 
 MIDDLEWARE = [
@@ -129,6 +131,23 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
 STATIC_URL = 'static/'
+
+CACHE_KEY_PREFIX = os.environ.get("CACHE_KEY_PREFIX", "bulk_order")
+DEFAULT_CACHE_TTL = int(os.environ.get("DEFAULT_CACHE_TTL", "300"))
+REDIS_URL = os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/1")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "KEY_PREFIX": CACHE_KEY_PREFIX,
+        "TIMEOUT": DEFAULT_CACHE_TTL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "IGNORE_EXCEPTIONS": True,
+        },
+    }
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
