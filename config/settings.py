@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "users",
     "location_module.apps.LocationModuleConfig",
     "vendors",
+    "items.apps.ItemsConfig",
 ]
 
 MIDDLEWARE = [
