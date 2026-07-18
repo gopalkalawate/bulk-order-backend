@@ -112,7 +112,40 @@ CREATE TABLE order_cycles (
 CREATE INDEX idx_order_cycles_location_status ON order_cycles(location_id, status);
 
 -- ------------------------------------------------------------
--- 6. INDIVIDUAL USER ORDERS
+-- 6. CART  (mutable, pre-checkout — user adds/removes/edits
+--    items freely here; nothing here is final until checkout)
+-- ------------------------------------------------------------
+CREATE TYPE cart_status AS ENUM ('active', 'checked_out', 'abandoned');
+
+CREATE TABLE carts (
+    cart_id      BIGSERIAL PRIMARY KEY,
+    cycle_id     BIGINT NOT NULL REFERENCES order_cycles(cycle_id),
+    user_id      BIGINT NOT NULL REFERENCES users(user_id),
+    status       cart_status NOT NULL DEFAULT 'active',
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+-- enforces "one ACTIVE cart per user per cycle" while still letting old
+-- checked_out / abandoned carts accumulate as history for that user+cycle
+CREATE UNIQUE INDEX idx_one_active_cart_per_user_cycle
+    ON carts (cycle_id, user_id)
+    WHERE status = 'active';
+
+CREATE TABLE cart_items (
+    cart_item_id  BIGSERIAL PRIMARY KEY,
+    cart_id       BIGINT NOT NULL REFERENCES carts(cart_id) ON DELETE CASCADE,
+    item_id       BIGINT NOT NULL REFERENCES items(item_id),
+    quantity      NUMERIC(10,2) NOT NULL CHECK (quantity > 0),
+    notes         TEXT,
+    added_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (cart_id, item_id)   -- adding the same item again just bumps quantity, doesn't duplicate the row
+);
+CREATE INDEX idx_cart_items_cart ON cart_items(cart_id);
+
+-- ------------------------------------------------------------
+-- 7. INDIVIDUAL USER ORDERS  (created at checkout — immutable
+--    record of what was actually ordered, as opposed to the cart)
 -- ------------------------------------------------------------
 CREATE TYPE user_order_status AS ENUM ('pending', 'confirmed', 'cancelled');
 
@@ -120,6 +153,7 @@ CREATE TABLE user_orders (
     user_order_id  BIGSERIAL PRIMARY KEY,
     cycle_id       BIGINT NOT NULL REFERENCES order_cycles(cycle_id),
     user_id        BIGINT NOT NULL REFERENCES users(user_id),
+    cart_id        BIGINT REFERENCES carts(cart_id),   -- traceability back to the cart it was checked out from
     status         user_order_status NOT NULL DEFAULT 'pending',
     created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (cycle_id, user_id)   -- one order per user per cycle
@@ -135,7 +169,7 @@ CREATE TABLE user_order_items (
 );
 
 -- ------------------------------------------------------------
--- 7. AGGREGATION SNAPSHOT
+-- 8. AGGREGATION SNAPSHOT
 --    Locked once the cycle closes, so quoting happens against
 --    stable quantities even if something edits later.
 -- ------------------------------------------------------------
@@ -149,7 +183,7 @@ CREATE TABLE aggregated_order_items (
 );
 
 -- ------------------------------------------------------------
--- 8. VENDOR QUOTES
+-- 9. VENDOR QUOTES
 -- ------------------------------------------------------------
 CREATE TYPE quote_status AS ENUM ('invited', 'submitted', 'rejected', 'partially_selected', 'selected');
 
@@ -177,9 +211,9 @@ ALTER TABLE aggregated_order_items
     FOREIGN KEY (selected_quote_item_id) REFERENCES vendor_quote_items(quote_item_id);
 
 -- ------------------------------------------------------------
--- 9. PURCHASE ORDERS  (placed to the winning vendor(s))
---    A cycle can produce multiple POs if different items win
---    with different vendors.
+-- 10. PURCHASE ORDERS  (placed to the winning vendor(s))
+--     A cycle can produce multiple POs if different items win
+--     with different vendors.
 -- ------------------------------------------------------------
 CREATE TYPE po_status AS ENUM ('placed', 'acknowledged', 'in_transit', 'delivered', 'cancelled');
 
@@ -228,3 +262,59 @@ GROUP BY uo.cycle_id, uoi.item_id;
 -- WHERE search_vector @@ query
 -- ORDER BY rank DESC
 -- LIMIT 20;
+
+-- ============================================================
+-- CHECKOUT: cart -> order
+-- ============================================================
+-- Call as: SELECT checkout_cart(:cart_id);
+-- Converts an active cart into a confirmed user_order + line items,
+-- then marks the cart checked_out. Wrap in a transaction at the
+-- call site if you also want to enforce the cycle is still 'open'.
+
+CREATE OR REPLACE FUNCTION checkout_cart(p_cart_id BIGINT)
+RETURNS BIGINT AS $$
+DECLARE
+    v_cycle_id     BIGINT;
+    v_user_id      BIGINT;
+    v_cycle_status cycle_status;
+    v_user_order_id BIGINT;
+BEGIN
+    SELECT c.cycle_id, c.user_id, oc.status
+      INTO v_cycle_id, v_user_id, v_cycle_status
+    FROM carts c
+    JOIN order_cycles oc ON oc.cycle_id = c.cycle_id
+    WHERE c.cart_id = p_cart_id AND c.status = 'active'
+    FOR UPDATE OF c;
+
+    IF NOT FOUND THEN
+        RAISE EXCEPTION 'Cart % not found or not active', p_cart_id;
+    END IF;
+
+    IF v_cycle_status <> 'open' THEN
+        RAISE EXCEPTION 'Ordering window for cycle % is not open (status: %)', v_cycle_id, v_cycle_status;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM cart_items WHERE cart_id = p_cart_id) THEN
+        RAISE EXCEPTION 'Cart % is empty', p_cart_id;
+    END IF;
+
+    -- create (or reuse) the user's order for this cycle
+    INSERT INTO user_orders (cycle_id, user_id, cart_id, status)
+    VALUES (v_cycle_id, v_user_id, p_cart_id, 'confirmed')
+    ON CONFLICT (cycle_id, user_id)
+    DO UPDATE SET status = 'confirmed', cart_id = EXCLUDED.cart_id
+    RETURNING user_order_id INTO v_user_order_id;
+
+    -- replace any prior line items for that order with the cart's contents
+    DELETE FROM user_order_items WHERE user_order_id = v_user_order_id;
+
+    INSERT INTO user_order_items (user_order_id, item_id, quantity, notes)
+    SELECT v_user_order_id, ci.item_id, ci.quantity, ci.notes
+    FROM cart_items ci
+    WHERE ci.cart_id = p_cart_id;
+
+    UPDATE carts SET status = 'checked_out', updated_at = now() WHERE cart_id = p_cart_id;
+
+    RETURN v_user_order_id;
+END;
+$$ LANGUAGE plpgsql;

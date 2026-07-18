@@ -24,8 +24,12 @@ from vendors.views import (
     get_service_locations,
     remove_serviceable_location,
     set_vendor_location,
+    link_vendor_partner,
+    add_vendor_item,
+    remove_vendor_item,
 )
 from items.views import create_item, create_item_category, search_items, update_item
+from ordering.views import *
 
 urlpatterns = [
     # path('admin/', admin.site.urls), # django admin is disabled for this project
@@ -42,8 +46,26 @@ urlpatterns = [
     path('vendors/get-service-locations', get_service_locations, name='get_vendor_service_locations'),
     path('vendors/add-serviceable-location', add_serviceable_location, name='add_serviceable_location'),
     path('vendors/remove-serviceable-location', remove_serviceable_location, name='remove_serviceable_location'),
+    path('vendors/<int:vendor_id>/partner', link_vendor_partner, name='link_vendor_partner'),
+    path('vendors/<int:vendor_id>/items', add_vendor_item, name='add_vendor_item'),
+    path('vendors/<int:vendor_id>/items/<int:item_id>', remove_vendor_item, name='remove_vendor_item'),
     path('items/create-category', create_item_category, name='create_item_category'),
     path('items/create-item', create_item, name='create_item'),
     path('items/search', search_items, name='search_items'),
     path('items/<int:item_id>', update_item, name='update_item'),
+    path('order-cycles', create_order_cycle, name='create_order_cycle'),
+    path('order-cycles/current', current_order_cycle, name='current_order_cycle'),
+    path('order-cycles/<int:cycle_id>', order_cycle_detail, name='order_cycle_detail'),
+    path('order-cycles/<int:cycle_id>/close', close_order_cycle, name='close_order_cycle'),
+    path('order-cycles/<int:cycle_id>/select-lowest-quotes', select_cycle_quotes, name='select_cycle_quotes'),
+    path('order-cycles/<int:cycle_id>/cart', cart_detail, name='cart_detail'),
+    path('order-cycles/<int:cycle_id>/cart/items', add_cart_item, name='add_cart_item'),
+    path('order-cycles/<int:cycle_id>/cart/items/<int:item_id>', update_cart_item, name='update_cart_item'),
+    path('order-cycles/<int:cycle_id>/checkout', checkout, name='checkout'),
+    path('orders', orders, name='orders'),
+    path('vendor-quotes', vendor_quotes, name='vendor_quotes'),
+    path('vendor-quotes/<int:quote_id>', vendor_quote_detail, name='vendor_quote_detail'),
+    path('vendor-quotes/<int:quote_id>/items', set_quote_items, name='set_quote_items'),
+    path('vendor-quotes/<int:quote_id>/submit', submit_quote, name='submit_quote'),
+    path('purchase-orders', purchase_orders, name='purchase_orders'),
 ]

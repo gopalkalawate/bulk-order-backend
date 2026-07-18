@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     "location_module.apps.LocationModuleConfig",
     "vendors",
     "items.apps.ItemsConfig",
+    "ordering.apps.OrderingConfig",
 ]
 
 MIDDLEWARE = [
