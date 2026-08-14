@@ -28,6 +28,15 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+# Flutter Web must receive CORS headers before it can call JWT-protected API
+# endpoints. Development is permissive; production uses the environment list.
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
+
 
 # Application definition
 
@@ -40,6 +49,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.gis',
     'django.contrib.postgres',
+    'corsheaders',
     "rest_framework",
     "users",
     "location_module.apps.LocationModuleConfig",
@@ -50,6 +60,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
