@@ -2,7 +2,9 @@ from django.contrib.gis.geos import Point
 from rest_framework import serializers
 
 from location_module.models import ServiceLocation
-from .models import Vendor, VendorServiceableLocation
+from users.models import User
+from items.models import Item
+from .models import Vendor, VendorServiceableLocation, VendorItem
 
 
 class VendorSerializer(serializers.ModelSerializer):
@@ -12,6 +14,7 @@ class VendorSerializer(serializers.ModelSerializer):
     location_longitude = serializers.SerializerMethodField()
     home_service_location_id = serializers.IntegerField(source="home_service_location.id", read_only=True)
     home_service_location_name = serializers.CharField(source="home_service_location.name", read_only=True)
+    partner_user_id = serializers.UUIDField(read_only=True)
 
     class Meta:
         model = Vendor
@@ -26,6 +29,7 @@ class VendorSerializer(serializers.ModelSerializer):
             "location_longitude",
             "home_service_location_id",
             "home_service_location_name",
+            "partner_user_id",
             "is_active",
             "created_at",
         ]
@@ -58,6 +62,21 @@ class VendorSerializer(serializers.ModelSerializer):
 
     def get_location_longitude(self, obj):
         return obj.location.x if obj.location else None
+
+
+class LinkVendorPartnerSerializer(serializers.Serializer):
+    partner_user_id = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(role=User.Role.PARTNER), source="partner_user"
+    )
+
+
+class VendorItemSerializer(serializers.ModelSerializer):
+    item_id = serializers.PrimaryKeyRelatedField(queryset=Item.objects.filter(is_active=True), source="item")
+
+    class Meta:
+        model = VendorItem
+        fields = ["id", "item_id"]
+        read_only_fields = ["id"]
 
 
 class SetVendorLocationSerializer(serializers.Serializer):

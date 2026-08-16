@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Collective Ordering — Redesign & Design System</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    /* ---- Color tokens ---- */
+    --ink-900:#1A1E23;
+    --ink-700:#3A4048;
+    --ink-600:#565E67;
+    --ink-400:#8A9099;
+    --ink-200:#D8DBDE;
+    --ink-100:#E9EBEC;
+    --paper:#F6F5F2;
+    --surface:#FFFFFF;
+
+    --brand-700:#232F5C;
+    --brand-600:#2F3E76;
+    --brand-100:#E5E7F2;
+
+    --amber-700:#8A5800;
+    --amber-600:#B5730A;
+    --amber-100:#FBEDD3;
+
+    --success-700:#0F5E3D;
+    --success-600:#1E8E5A;
+    --success-100:#E1F3E9;
+
+    --danger-700:#7E1E17;
+    --danger-600:#B3261E;
+    --danger-100:#F8E1DF;
+
+    /* ---- Type ---- */
+    --font-ui: 'IBM Plex Sans', -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', monospace;
+
+    /* ---- Spacing (8pt-ish scale) ---- */
+    --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px;
+    --sp-6:24px; --sp-7:32px; --sp-8:40px; --sp-9:48px;
+
+    /* ---- Radius ---- */
+    --r-sm:6px; --r-md:10px; --r-lg:16px; --r-full:999px;
+
+    /* ---- Shadow (used sparingly — elevation, not decoration) ---- */
+    --shadow-sm: 0 1px 2px rgba(20,20,20,0.06);
+    --shadow-md: 0 8px 24px rgba(20,20,20,0.14);
+    --shadow-bar: 0 -2px 10px rgba(20,20,20,0.06);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:#EDEBE6;font-family:var(--font-ui);color:var(--ink-900);}
+  .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums;}
+
+  /* ============ PAGE SHELL ============ */
+  .doc{max-width:1400px;margin:0 auto;padding:48px 32px 120px;}
+  .doc-header{margin-bottom:56px;max-width:760px;}
+  .doc-header .eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--brand-600);font-weight:600;}
+  .doc-header h1{font-size:32px;line-height:1.2;margin:10px 0 12px;font-weight:700;letter-spacing:-0.01em;}
+  .doc-header p{font-size:15px;line-height:1.6;color:var(--ink-600);margin:0;}
+
+  .section{margin-bottom:64px;}
+  .section-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;border-bottom:1px solid var(--ink-200);padding-bottom:14px;}
+  .section-head h2{font-size:20px;margin:0;font-weight:700;}
+  .section-head .count{font-family:var(--font-mono);font-size:12px;color:var(--ink-400);}
+  .section-note{font-size:13px;color:var(--ink-600);line-height:1.6;max-width:640px;margin:0 0 20px;}
+
+  /* ============ TOKEN SHOWCASE ============ */
+  .tok-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+  .swatch{border-radius:var(--r-md);overflow:hidden;border:1px solid var(--ink-200);background:var(--surface);}
+  .swatch .fill{height:64px;}
+  .swatch .label{padding:8px 10px;font-size:11px;line-height:1.5;}
+  .swatch .label b{display:block;font-size:12px;}
+  .swatch .label span{font-family:var(--font-mono);color:var(--ink-600);}
+
+  .type-row{display:flex;align-items:baseline;gap:20px;padding:14px 0;border-bottom:1px solid var(--ink-100);}
+  .type-row:last-child{border-bottom:none;}
+  .type-row .tag{width:150px;flex:none;font-family:var(--font-mono);font-size:11px;color:var(--ink-400);}
+  .type-row .sample{color:var(--ink-900);}
+
+  .space-row{display:flex;align-items:center;gap:16px;padding:10px 0;}
+  .space-row .bar{background:var(--brand-600);height:14px;border-radius:2px;}
+  .space-row .tag{font-family:var(--font-mono);font-size:12px;color:var(--ink-600);width:110px;}
+
+  .comp-block{background:var(--surface);border:1px solid var(--ink-200);border-radius:var(--r-lg);padding:24px;}
+  .comp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:28px;}
+  .comp-label{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-400);margin-bottom:12px;}
+
+  /* ============ BUTTONS ============ */
+  .btn{font-family:var(--font-ui);font-size:14px;font-weight:600;border-radius:var(--r-md);padding:11px 18px;border:1px solid transparent;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:background .12s ease;}
+  .btn-primary{background:var(--brand-600);color:#fff;}
+  .btn-primary:hover{background:var(--brand-700);}
+  .btn-primary:disabled{background:var(--ink-200);color:var(--ink-400);cursor:not-allowed;}
+  .btn-secondary{background:#fff;color:var(--brand-600);border-color:var(--brand-600);}
+  .btn-secondary:hover{background:var(--brand-100);}
+  .btn-ghost{background:transparent;color:var(--ink-700);border-color:var(--ink-200);}
+  .btn-ghost:hover{background:var(--ink-100);}
+  .btn-danger-ghost{background:transparent;color:var(--danger-600);border-color:var(--danger-100);}
+  .btn-block{width:100%;}
+  .btn-sm{padding:7px 12px;font-size:13px;border-radius:var(--r-sm);}
+
+  /* ============ FORM CONTROLS ============ */
+  .input{width:100%;background:var(--surface);border:1px solid var(--ink-200);border-radius:var(--r-md);padding:11px 14px;font-family:var(--font-ui);font-size:14px;color:var(--ink-900);}
+  .input::placeholder{color:var(--ink-400);}
+  .input:focus{outline:2px solid var(--brand-600);outline-offset:1px;border-color:var(--brand-600);}
+  .search-field{position:relative;}
+  .search-field .input{padding-left:38px;}
+  .search-field svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-400);}
+  .qty-stepper{display:inline-flex;align-items:center;border:1px solid var(--ink-200);border-radius:var(--r-md);overflow:hidden;}
+  .qty-stepper button{width:34px;height:34px;border:none;background:var(--ink-100);color:var(--ink-900);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .qty-stepper button:hover{background:var(--ink-200);}
+  .qty-stepper .val{width:34px;text-align:center;font-family:var(--font-mono);font-size:14px;font-weight:600;}
+
+  /* ============ CHIPS / TABS ============ */
+  .chip-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+  .chip{flex:none;padding:8px 14px;border-radius:var(--r-full);font-size:13px;font-weight:600;border:1px solid var(--ink-200);background:#fff;color:var(--ink-700);cursor:pointer;}
+  .chip.is-active{background:var(--ink-900);border-color:var(--ink-900);color:#fff;}
+  .tabbar{display:flex;border-bottom:1px solid var(--ink-200);}
+  .tabbar .tab{flex:1;text-align:center;padding:10px 0;font-size:13px;font-weight:600;color:var(--ink-400);border-bottom:2px solid transparent;cursor:pointer;}
+  .tabbar .tab.is-active{color:var(--ink-900);border-bottom-color:var(--brand-600);}
+
+  /* ============ BADGES ============ */
+  .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:var(--r-sm);font-size:11px;font-weight:600;letter-spacing:.01em;}
+  .badge-success{background:var(--success-100);color:var(--success-700);}
+  .badge-amber{background:var(--amber-100);color:var(--amber-700);}
+  .badge-danger{background:var(--danger-100);color:var(--danger-700);}
+  .badge-neutral{background:var(--ink-100);color:var(--ink-700);}
+  .badge-brand{background:var(--brand-100);color:var(--brand-700);}
+
+  /* ============ AVATARS ============ */
+  .avatar-stack{display:flex;}
+  .avatar{width:24px;height:24px;border-radius:50%;background:var(--brand-100);color:var(--brand-700);font-family:var(--font-mono);font-size:10px;font-weight:600;display:flex;align-items:center;justify-content:center;border:2px solid #fff;margin-left:-7px;}
+  .avatar:first-child{margin-left:0;}
+
+  /* ============ CARDS / LIST ROWS ============ */
+  .info-box{border:1px solid var(--ink-200);border-radius:var(--r-md);padding:12px 14px;background:var(--surface);display:flex;gap:10px;}
+  .info-box.success{border-color:#BFE3D0;background:var(--success-100);}
+  .info-box.amber{border-color:#EFD9A6;background:var(--amber-100);}
+  .info-box svg{flex:none;margin-top:1px;}
+  .info-box .t{font-size:12.5px;line-height:1.55;color:var(--ink-700);}
+  .info-box.success .t{color:var(--success-700);}
+  .info-box.amber .t{color:var(--amber-700);}
+
+  .list-row{display:flex;justify-content:space-between;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--ink-100);gap:10px;}
+  .list-row:last-child{border-bottom:none;}
+
+  /* ============ ICONS (sprite reused everywhere) ============ */
+  svg.icon{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;}
+
+  /* ============ CYCLE RAIL — signature component ============ */
+  .cycle-rail{display:flex;align-items:flex-start;}
+  .cycle-rail .stage{flex:1;text-align:center;position:relative;}
+  .cycle-rail .stage .dot{width:9px;height:9px;border-radius:50%;background:var(--ink-200);margin:0 auto 6px;position:relative;z-index:2;}
+  .cycle-rail .stage .line{position:absolute;top:4px;left:-50%;width:100%;height:1px;background:var(--ink-200);z-index:1;}
+  .cycle-rail .stage:first-child .line{display:none;}
+  .cycle-rail .stage .lbl{font-size:9.5px;font-weight:600;color:var(--ink-400);text-transform:uppercase;letter-spacing:.03em;}
+  .cycle-rail .stage.done .dot{background:var(--brand-600);}
+  .cycle-rail .stage.done .line{background:var(--brand-600);}
+  .cycle-rail .stage.current .dot{background:var(--brand-600);width:11px;height:11px;box-shadow:0 0 0 3px var(--brand-100);}
+  .cycle-rail .stage.current .lbl{color:var(--brand-700);}
+  .cycle-rail .stage.done .lbl{color:var(--ink-700);}
+
+  /* ============ PHONE FRAMES ============ */
+  .screens-wrap{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;}
+  .frame-block{width:336px;}
+  .frame-caption{margin-top:12px;}
+  .frame-caption h3{font-size:14px;margin:0 0 4px;font-weight:700;}
+  .frame-caption p{font-size:12px;color:var(--ink-600);line-height:1.55;margin:0;}
+  .frame{width:336px;background:#0E0F11;border-radius:34px;padding:9px;box-shadow:var(--shadow-md);}
+  .screen{background:var(--paper);border-radius:26px;overflow:hidden;height:702px;display:flex;flex-direction:column;position:relative;}
+  .statusbar{display:flex;justify-content:space-between;padding:10px 20px 2px;font-family:var(--font-mono);font-size:11px;font-weight:600;color:var(--ink-900);flex:none;}
+  .app-header{padding:10px 18px 14px;flex:none;background:var(--paper);}
+  .app-header .row1{display:flex;align-items:center;justify-content:space-between;}
+  .app-header .place{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-700);}
+  .app-header h1{font-size:19px;font-weight:700;margin:10px 0 2px;letter-spacing:-0.01em;}
+  .app-header .sub{font-size:12px;color:var(--ink-600);}
+  .scroll{flex:1;overflow-y:auto;padding:0 18px 18px;}
+  .scroll::-webkit-scrollbar{display:none;}
+  .bottombar{flex:none;padding:12px 18px calc(12px + 8px);background:var(--surface);border-top:1px solid var(--ink-200);box-shadow:var(--shadow-bar);}
+  .navbar{flex:none;display:flex;border-top:1px solid var(--ink-200);background:var(--surface);padding:8px 0 14px;}
+  .navbar .nitem{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;color:var(--ink-400);}
+  .navbar .nitem.is-active{color:var(--brand-600);}
+
+  .prod-row{display:flex;gap:12px;padding:14px 0;border-bottom:1px solid var(--ink-100);}
+  .thumb{width:56px;height:56px;border-radius:var(--r-md);background:var(--ink-100);flex:none;display:flex;align-items:center;justify-content:center;color:var(--ink-400);}
+  .prod-meta{flex:1;min-width:0;}
+  .prod-meta .name{font-size:13.5px;font-weight:600;margin:0 0 3px;}
+  .prod-meta .sub{font-size:11.5px;color:var(--ink-600);margin:0 0 6px;}
+  .prod-meta .social{font-size:11px;color:var(--ink-600);display:flex;align-items:center;gap:4px;}
+  .price-line{display:flex;align-items:baseline;gap:6px;margin-top:6px;}
+  .price-now{font-family:var(--font-mono);font-weight:600;font-size:14px;}
+  .price-old{font-family:var(--font-mono);font-size:12px;color:var(--ink-400);text-decoration:line-through;}
+
+  .section-eyebrow{font-family:var(--font-mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-400);margin:18px 0 8px;}
+
+  .skel{background:linear-gradient(90deg,var(--ink-100) 25%,var(--ink-200) 37%,var(--ink-100) 63%);background-size:400% 100%;animation:shimmer 1.4s infinite;border-radius:var(--r-sm);}
+  @keyframes shimmer{0%{background-position:100% 0;}100%{background-position:0 0;}}
+
+  footer.doc-footer{border-top:1px solid var(--ink-200);margin-top:60px;padding-top:24px;font-size:12px;color:var(--ink-400);}
+</style>
+</head>
+<body>
+<svg style="display:none">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 8.4 8 10 4.6-1.6 8-5 8-10V5l-8-3Z"/><polyline points="9 12 11.3 14.3 15.5 9.5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+  <symbol id="i-check-c" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="8 12.5 10.8 15 16 9.5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3 2 20h20L12 3Z"/><line x1="12" y1="10" x2="12" y2="14.5"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 22s7-6.4 7-12a7 7 0 0 0-14 0c0 5.6 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-truck" viewBox="0 0 24 24"><rect x="1" y="7" width="14" height="10"/><path d="M15 10h4l3 3v4h-7"/><circle cx="6" cy="19" r="1.8"/><circle cx="17.5" cy="19" r="1.8"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="M3 8l9 5 9-5"/><line x1="12" y1="13" x2="12" y2="21"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="9" cy="21" r="1.4"/><circle cx="18" cy="21" r="1.4"/><path d="M2 3h2l2.6 12.4a2 2 0 0 0 2 1.6h7.8a2 2 0 0 0 2-1.6L21 7H6"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M3 9 4 3h16l1 6"/><path d="M3 9a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/><path d="M4 9v11h16V9"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+</svg>
+
+<div class="doc">
+
+  <div class="doc-header">
+    <div class="eyebrow">Redesign &amp; Design System</div>
+    <h1>Community Ordering — from screenshots to a real product</h1>
+    <p>A full redesign of the three supplied screens plus the states the flow was missing, built on one reusable
+    design system. The core idea — neighbors combine orders to get wholesale pricing — is preserved everywhere;
+    what changes is how clearly the app explains where an order stands, what's committed vs. estimated, and
+    what happens next.</p>
+  </div>
+
+  <!-- =========================================================
+       CRITIQUE
+  ========================================================== -->
+  <div class="section">
+    <div class="section-head"><h2>1 · What wasn't working</h2></div>
+    <div class="comp-grid">
+      <div>
+        <div class="comp-label">Trust signals were miscolored</div>
+        <p class="section-note" style="margin:0">The "never exceeds MRP" price‑protection guarantee — a reassurance — was styled as a red alert box. Red should mean something is wrong. Reassurance and risk were visually swapped.</p>
+      </div>
+      <div>
+        <div class="comp-label">No sense of where an order stood</div>
+        <p class="section-note" style="margin:0">Pooling, bidding, invoicing, payment and delivery are five distinct states, but nothing on any screen showed which one you were in, or what came next. Users could confirm a pledge and then have no way to check on it.</p>
+      </div>
+      <div>
+        <div class="comp-label">Metrics competed with each other</div>
+        <p class="section-note" style="margin:0">"148 Houses Active," "148 units pooled (42 houses)," and "210 units pooled (65 houses)" all appear on one screen with no shared meaning — active in the tower? ordered this cycle? ordered this item? Same number, different referents.</p>
+      </div>
+      <div>
+        <div class="comp-label">Savings were repeated until they felt like a pitch</div>
+        <p class="section-note" style="margin:0">The invoice stated savings four separate times (per line ×3, plus a total, plus "beat the benchmark"). One clear total is more credible than four reminders.</p>
+      </div>
+      <div>
+        <div class="comp-label">Tone drifted from the rest of the app</div>
+        <p class="section-note" style="margin:0">A 🎉 emoji banner on the invoice sits oddly next to GST breakdowns and reverse-auction mechanics elsewhere. This app is closer to a ledger than a deals feed — the copy should read that way throughout.</p>
+      </div>
+      <div>
+        <div class="comp-label">Flow stopped at payment</div>
+        <p class="section-note" style="margin:0">There was no order list, no post-payment tracking, no way to leave a pledge before it locks, and no loading/empty/error states — all needed for this to hold together as a real product.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       DESIGN SYSTEM
+  ========================================================== -->
+  <div class="section">
+    <div class="section-head"><h2>2 · Design system</h2></div>
+
+    <div class="section-eyebrow" style="margin-top:0">Color — semantic tokens</div>
+    <p class="section-note">One brand color used only for primary actions and current-state emphasis. Success/amber/danger are reserved strictly for what they mean — amber for time pressure, danger only for things that actually failed.</p>
+    <div class="tok-grid">
+      <div class="swatch"><div class="fill" style="background:var(--brand-600)"></div><div class="label"><b>Brand / Cooperative Indigo</b><span>#2F3E76</span></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--ink-900)"></div><div class="label"><b>Ink 900 — text</b><span>#1A1E23</span></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--ink-400)"></div><div class="label"><b>Ink 400 — muted</b><span>#8A9099</span></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--paper);border-bottom:1px solid var(--ink-200)"></div><div class="label"><b>Paper — background</b><span>#F6F5F2</span></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--success-600)"></div><div class="label"><b>Success — savings/complete</b><span>#1E8E5A</span></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--amber-600)"></div><div class="label"><b>Amber — time pressure</b><span>#B5730A</span></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--danger-600)"></div><div class="label"><b>Danger — failures only</b><span>#B3261E</span></div></div>
+      <div class="swatch"><div class="fill" style="background:var(--ink-200)"></div><div class="label"><b>Border / Ink 200</b><span>#D8DBDE</span></div></div>
+    </div>
+
+    <div class="section-eyebrow">Typography</div>
+    <p class="section-note">IBM Plex Sans for interface text; IBM Plex Mono, tabular, for every number that represents money, quantity, a countdown or an ID. Splitting the two makes the app read like a ledger — appropriate for a product built on pooled billing and invoices — and keeps prices scannable and unambiguous.</p>
+    <div class="comp-block">
+      <div class="type-row"><div class="tag">display / 2xl</div><div class="sample" style="font-size:28px;font-weight:700;">Household Cart</div></div>
+      <div class="type-row"><div class="tag">title / xl</div><div class="sample" style="font-size:20px;font-weight:700;">Tower A Pantry Hub</div></div>
+      <div class="type-row"><div class="tag">heading / lg</div><div class="sample" style="font-size:17px;font-weight:600;">Organic Cold‑Pressed Almond Oil</div></div>
+      <div class="type-row"><div class="tag">body / base</div><div class="sample" style="font-size:15px;">Combine orders with neighbors for wholesale pricing.</div></div>
+      <div class="type-row"><div class="tag">meta / sm</div><div class="sample" style="font-size:13px;color:var(--ink-600);">132 of 148 households joined this cycle</div></div>
+      <div class="type-row"><div class="tag">eyebrow / xs</div><div class="sample" style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-400);">Trending in Tower A</div></div>
+      <div class="type-row"><div class="tag">mono / price</div><div class="sample mono" style="font-size:20px;font-weight:600;">₹1,287.64</div></div>
+      <div class="type-row"><div class="tag">mono / meta</div><div class="sample mono" style="font-size:12px;color:var(--ink-600);">Day 6 of 15 · Cycle #14</div></div>
+    </div>
+
+    <div class="section-eyebrow">Spacing scale (8pt-based)</div>
+    <div class="comp-block">
+      <div class="space-row"><div class="tag">4 — xs</div><div class="bar" style="width:4px"></div></div>
+      <div class="space-row"><div class="tag">8 — sm</div><div class="bar" style="width:8px"></div></div>
+      <div class="space-row"><div class="tag">12 — md</div><div class="bar" style="width:12px"></div></div>
+      <div class="space-row"><div class="tag">16 — lg</div><div class="bar" style="width:16px"></div></div>
+      <div class="space-row"><div class="tag">24 — xl</div><div class="bar" style="width:24px"></div></div>
+      <div class="space-row"><div class="tag">32 — 2xl</div><div class="bar" style="width:32px"></div></div>
+      <div class="space-row"><div class="tag">48 — 3xl</div><div class="bar" style="width:48px"></div></div>
+    </div>
+
+    <div class="section-eyebrow">Radius &amp; elevation</div>
+    <p class="section-note">Small, consistent radii (6 / 10 / 16px) instead of uniform heavy rounding everywhere. Elevation is mostly hairline borders, not shadow — shadow is reserved for things that truly float: sticky action bars and sheets.</p>
+
+    <div class="section-eyebrow">Buttons</div>
+    <div class="comp-block">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-primary">Add to cart</button>
+        <button class="btn btn-secondary">View details</button>
+        <button class="btn btn-ghost">Cancel</button>
+        <button class="btn btn-danger-ghost">Leave this order</button>
+        <button class="btn btn-primary" disabled>Pooling closed</button>
+        <button class="btn btn-primary btn-sm">Confirm</button>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">Inputs, chips, tabs</div>
+    <div class="comp-block">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div>
+          <div class="search-field" style="margin-bottom:14px;"><svg class="icon"><use href="#i-search"/></svg><input class="input" placeholder="Search staples, cleaning, dairy…"></div>
+          <div class="chip-row">
+            <div class="chip is-active">Pantry Staples</div>
+            <div class="chip">Home Cleaning</div>
+            <div class="chip">Personal Care</div>
+          </div>
+        </div>
+        <div>
+          <div class="tabbar" style="margin-bottom:14px;">
+            <div class="tab is-active">Active (2)</div>
+            <div class="tab">Past</div>
+          </div>
+          <div class="qty-stepper"><button>−</button><div class="val">2</div><button>+</button></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">Badges, avatars, info boxes</div>
+    <div class="comp-block">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;">
+        <span class="badge badge-brand">Pooling</span>
+        <span class="badge badge-amber">Bidding</span>
+        <span class="badge badge-neutral">Invoiced</span>
+        <span class="badge badge-success">Delivered</span>
+        <span class="badge badge-danger">Payment failed</span>
+        <div class="avatar-stack"><div class="avatar">RS</div><div class="avatar">AK</div><div class="avatar">+40</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="info-box success"><svg class="icon"><use href="#i-shield"/></svg><div class="t"><b>Price protection.</b> You'll never pay more than ₹1,680, the listed MRP — even if the winning bid comes in higher than estimated.</div></div>
+        <div class="info-box amber"><svg class="icon"><use href="#i-clock"/></svg><div class="t"><b>Closes in 3d 14h.</b> Final price is set after vendor bidding on Day 11 — larger pools tend to win lower bids.</div></div>
+      </div>
+    </div>
+
+    <div class="section-eyebrow">Cycle rail — the shared status component</div>
+    <p class="section-note">Every order moves through the same five stages. This rail appears, in the same position, on the hub, the order card, and the order detail screen, so "where is this order" is always answered the same way.</p>
+    <div class="comp-block">
+      <div class="cycle-rail">
+        <div class="stage done"><div class="line"></div><div class="dot"></div><div class="lbl">Pooling</div></div>
+        <div class="stage current"><div class="line"></div><div class="dot"></div><div class="lbl">Bidding</div></div>
+        <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Invoiced</div></div>
+        <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Payment</div></div>
+        <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Delivered</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================
+       SCREENS
+  ========================================================== -->
+  <div class="section">
+    <div class="section-head"><h2>3 · Redesigned screens</h2><span class="count">8 screens</span></div>
+
+    <div class="screens-wrap">
+
+      <!-- SCREEN 1: HOME / HUB -->
+      <div class="frame-block">
+        <div class="frame"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>Tower A · 5G</span></div>
+          <div class="app-header">
+            <div class="row1">
+              <div class="place"><svg class="icon" width="14" height="14"><use href="#i-pin"/></svg> Tower A Pantry Hub</div>
+              <span class="badge badge-neutral mono">Cycle #14</span>
+            </div>
+            <h1>Household Essentials</h1>
+            <div class="sub">Combine orders with neighbors for wholesale pricing</div>
+          </div>
+          <div class="scroll">
+            <div class="info-box amber" style="margin-bottom:14px;">
+              <svg class="icon"><use href="#i-users"/></svg>
+              <div class="t"><b>132 of 148 households</b> have joined this cycle · closes in <b class="mono">3d 14h</b></div>
+            </div>
+            <div class="search-field" style="margin-bottom:14px;"><svg class="icon"><use href="#i-search"/></svg><input class="input" placeholder="Search staples, cleaning, dairy…"></div>
+            <div class="chip-row" style="margin-bottom:6px;">
+              <div class="chip is-active">Pantry Staples</div>
+              <div class="chip">Home Cleaning</div>
+              <div class="chip">Personal Care</div>
+            </div>
+            <div class="section-eyebrow">Trending in Tower A</div>
+
+            <div class="prod-row">
+              <div class="thumb"><svg class="icon" width="24" height="24"><use href="#i-box"/></svg></div>
+              <div class="prod-meta">
+                <p class="name">Organic Almond Oil (1L)</p>
+                <p class="sub">Earthly Goods · Standard Pack</p>
+                <div class="price-line"><span class="price-now">₹375</span><span class="price-old">₹500</span><span class="badge badge-success">Est. 25% off</span></div>
+                <div class="social" style="margin-top:6px;"><svg class="icon" width="13" height="13"><use href="#i-users"/></svg> 42 households have added this</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" style="align-self:center;">Add</button>
+            </div>
+
+            <div class="prod-row">
+              <div class="thumb"><svg class="icon" width="24" height="24"><use href="#i-box"/></svg></div>
+              <div class="prod-meta">
+                <p class="name">Sparkle Dishwashing Gel (500ml)</p>
+                <p class="sub">CleanHome</p>
+                <div class="price-line"><span class="price-now">₹110</span><span class="price-old">₹145</span><span class="badge badge-success">Est. 24% off</span></div>
+                <div class="social" style="margin-top:6px;"><svg class="icon" width="13" height="13"><use href="#i-users"/></svg> 65 households have added this</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" style="align-self:center;">Add</button>
+            </div>
+
+            <div class="prod-row" style="opacity:.55">
+              <div class="thumb skel" style="border-radius:var(--r-md)"></div>
+              <div class="prod-meta">
+                <p class="skel" style="height:12px;width:70%;margin-bottom:8px;"></p>
+                <p class="skel" style="height:10px;width:45%;margin-bottom:8px;"></p>
+                <p class="skel" style="height:10px;width:30%;"></p>
+              </div>
+            </div>
+          </div>
+          <div class="navbar">
+            <div class="nitem is-active"><svg class="icon" width="20" height="20"><use href="#i-store"/></svg>Store</div>
+            <div class="nitem"><svg class="icon" width="20" height="20"><use href="#i-cart"/></svg>Cart · 2</div>
+            <div class="nitem"><svg class="icon" width="20" height="20"><use href="#i-box"/></svg>Orders</div>
+            <div class="nitem"><svg class="icon" width="20" height="20"><use href="#i-user"/></svg>Profile</div>
+          </div>
+        </div></div>
+        <div class="frame-caption"><h3>1 · Hub — Store</h3><p>One unambiguous headline metric (households joined this cycle) instead of three competing counts. Each product still shows its own participation as a secondary trust signal. A skeleton row previews the loading state.</p></div>
+      </div>
+
+      <!-- SCREEN 2: PRODUCT DETAIL -->
+      <div class="frame-block">
+        <div class="frame"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>Tower A · 5G</span></div>
+          <div class="app-header" style="padding-bottom:2px;">
+            <div class="row1"><svg class="icon"><use href="#i-back"/></svg><span style="font-size:13px;font-weight:600;">Back to store</span><span style="width:18px"></span></div>
+          </div>
+          <div class="scroll">
+            <div style="height:150px;border-radius:var(--r-lg);background:var(--ink-100);display:flex;align-items:center;justify-content:center;color:var(--ink-400);margin-bottom:14px;">
+              <svg class="icon" width="40" height="40"><use href="#i-box"/></svg>
+            </div>
+            <h1 style="font-size:18px;font-weight:700;margin:0 0 2px;">Organic Cold‑Pressed Almond Oil (1L)</h1>
+            <div class="sub" style="margin-bottom:14px;">Earthly Goods · Standard Household Pack</div>
+
+            <div class="price-line" style="margin-bottom:4px;"><span class="price-now" style="font-size:24px;">₹375</span><span class="price-old" style="font-size:15px;">₹500 MRP</span></div>
+            <div class="sub" style="margin-bottom:12px;">Estimated price · not yet final</div>
+
+            <div class="info-box amber" style="margin-bottom:10px;"><svg class="icon"><use href="#i-clock"/></svg><div class="t">Final price is set on <b>Day 11</b>, after vendors bid for the whole Tower A pool. Larger pools tend to win lower bids.</div></div>
+            <div class="info-box success" style="margin-bottom:16px;"><svg class="icon"><use href="#i-shield"/></svg><div class="t">Price protection: you'll never be billed more than <b>₹500</b>, the MRP — whatever the winning bid.</div></div>
+
+            <div class="section-eyebrow" style="margin-top:4px;">Tower A's past winning bids</div>
+            <div class="list-row"><span style="font-size:13px;color:var(--ink-600);">Cycle #11 · 90 units pooled</span><span class="mono" style="font-size:13px;font-weight:600;">₹390</span></div>
+            <div class="list-row"><span style="font-size:13px;color:var(--ink-600);">Cycle #12 · 120 units pooled</span><span class="mono" style="font-size:13px;font-weight:600;">₹380</span></div>
+            <div class="list-row" style="background:var(--success-100);margin:0 -10px;padding:14px 10px;border-radius:var(--r-sm);border-bottom:none;">
+              <span style="font-size:13px;font-weight:600;color:var(--success-700);">Cycle #13 · 150 units pooled</span>
+              <span class="mono badge badge-success" style="font-size:12px;">Best · ₹375</span>
+            </div>
+
+            <div class="section-eyebrow">How the price is set</div>
+            <p style="font-size:12.5px;line-height:1.7;color:var(--ink-600);margin:0 0 8px;">
+              1. Add the quantity your household normally uses — no minimum.<br>
+              2. On Day 9, every Tower A household's order is combined into one lot.<br>
+              3. Suppliers bid, blind, to win the whole lot.<br>
+              4. You're billed the lowest winning bid, capped at MRP, on delivery.
+            </p>
+          </div>
+          <div class="bottombar">
+            <div style="display:flex;gap:10px;align-items:center;">
+              <div class="qty-stepper"><button><svg class="icon" width="14" height="14"><use href="#i-minus"/></svg></button><div class="val">1</div><button><svg class="icon" width="14" height="14"><use href="#i-plus"/></svg></button></div>
+              <button class="btn btn-primary" style="flex:1;">Add to cart · ₹0 due today</button>
+            </div>
+          </div>
+        </div></div>
+        <div class="frame-caption"><h3>2 · Product detail</h3><p>The estimate‑vs‑final distinction and the MRP guarantee are now the two most visible things on the screen, in colors that mean "wait" and "safe" rather than one generic gray caption. "Best" pricing history is highlighted, not just labeled in text.</p></div>
+      </div>
+
+      <!-- SCREEN 3: CART -->
+      <div class="frame-block">
+        <div class="frame"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>Tower A · 5G</span></div>
+          <div class="app-header">
+            <div class="row1"><h1 style="margin:0;">Household cart</h1><span class="badge badge-neutral mono">Cycle #14</span></div>
+            <div class="sub">4 items · Tower A Pantry Hub</div>
+          </div>
+          <div class="scroll">
+            <div class="list-row"><div><p style="margin:0 0 2px;font-size:13.5px;font-weight:600;">1× Almond Oil (1L)</p><p style="margin:0;font-size:11.5px;color:var(--ink-600);">Est. ₹375/unit</p></div><span class="mono" style="font-weight:600;">₹375</span></div>
+            <div class="list-row"><div><p style="margin:0 0 2px;font-size:13.5px;font-weight:600;">2× Dishwashing Gel (500ml)</p><p style="margin:0;font-size:11.5px;color:var(--ink-600);">Est. ₹110/unit</p></div><span class="mono" style="font-weight:600;">₹220</span></div>
+            <div class="list-row"><div><p style="margin:0 0 2px;font-size:13.5px;font-weight:600;">1× Laundry Detergent (2kg)</p><p style="margin:0;font-size:11.5px;color:var(--ink-600);">Est. ₹555/unit</p></div><span class="mono" style="font-weight:600;">₹555</span></div>
+            <div class="list-row"><div><p style="margin:0 0 2px;font-size:13.5px;font-weight:600;">1× Basmati Rice (5kg)</p><p style="margin:0;font-size:11.5px;color:var(--ink-600);">Est. ₹430/unit</p></div><span class="mono" style="font-weight:600;">₹430</span></div>
+
+            <div class="section-eyebrow">Estimated total</div>
+            <div style="background:var(--surface);border:1px solid var(--ink-200);border-radius:var(--r-md);padding:14px;">
+              <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-600);margin-bottom:6px;"><span>Pool subtotal</span><span class="mono">₹1,580</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-600);margin-bottom:6px;"><span>Shared hub delivery fee</span><span class="mono">₹15</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--ink-600);margin-bottom:10px;"><span>Estimated GST (18%)</span><span class="mono">₹287</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;border-top:1px solid var(--ink-100);padding-top:10px;"><span>Est. due on delivery</span><span class="mono">₹1,882</span></div>
+            </div>
+            <div class="info-box success" style="margin-top:10px;"><svg class="icon"><use href="#i-shield"/></svg><div class="t">Capped at <b>₹2,315</b>, the combined MRP — final invoice can only be equal or lower.</div></div>
+          </div>
+          <div class="bottombar">
+            <label style="display:flex;gap:8px;font-size:11.5px;color:var(--ink-600);line-height:1.5;margin-bottom:10px;">
+              <input type="checkbox" checked style="margin-top:2px;">
+              I'm committing to this order for Cycle #14. I'll pay the final winning-bid invoice on delivery (Day 12–15). I can leave before bidding closes.
+            </label>
+            <button class="btn btn-primary btn-block">Confirm household order · ₹0 due today</button>
+          </div>
+        </div></div>
+        <div class="frame-caption"><h3>3 · Cart</h3><p>The MRP guarantee moves from a red "warning" box to a green reassurance box. The commitment text now states plainly that leaving is possible before bidding closes — answering a question the original screen never addressed.</p></div>
+      </div>
+
+      <!-- SCREEN 4: ORDER TRACKING MID-CYCLE (NEW) -->
+      <div class="frame-block">
+        <div class="frame"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>Tower A · 5G</span></div>
+          <div class="app-header" style="padding-bottom:2px;">
+            <div class="row1"><svg class="icon"><use href="#i-back"/></svg><span style="font-size:13px;font-weight:600;">Orders</span><span style="width:18px"></span></div>
+          </div>
+          <div class="scroll">
+            <p class="section-eyebrow" style="margin-top:10px;">Cycle #14 · Tower A</p>
+            <h1 style="font-size:18px;font-weight:700;margin:0 0 14px;">Your household order</h1>
+
+            <div class="cycle-rail" style="margin-bottom:8px;">
+              <div class="stage done"><div class="line"></div><div class="dot"></div><div class="lbl">Pooling</div></div>
+              <div class="stage current"><div class="line"></div><div class="dot"></div><div class="lbl">Bidding</div></div>
+              <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Invoiced</div></div>
+              <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Payment</div></div>
+              <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Delivered</div></div>
+            </div>
+            <div style="text-align:center;font-size:12px;color:var(--ink-600);margin-bottom:18px;" class="mono">Day 9 of 15 · vendors bidding now</div>
+
+            <div class="info-box" style="margin-bottom:16px;"><svg class="icon"><use href="#i-info"/></svg><div class="t">Pooling closed with <b>150 units</b> across <b>132 households</b> — your order is locked into this lot. Suppliers are bidding blind to win it; you'll get the final price when bidding closes.</div></div>
+
+            <div class="section-eyebrow">Your 4 items</div>
+            <div class="list-row"><span style="font-size:13px;">Almond Oil (1L) ×1</span><span class="mono" style="font-size:13px;color:var(--ink-600);">Est. ₹375</span></div>
+            <div class="list-row"><span style="font-size:13px;">Dishwashing Gel ×2</span><span class="mono" style="font-size:13px;color:var(--ink-600);">Est. ₹220</span></div>
+            <div class="list-row"><span style="font-size:13px;">Laundry Detergent ×1</span><span class="mono" style="font-size:13px;color:var(--ink-600);">Est. ₹555</span></div>
+            <div class="list-row"><span style="font-size:13px;">Basmati Rice ×1</span><span class="mono" style="font-size:13px;color:var(--ink-600);">Est. ₹430</span></div>
+
+            <div class="section-eyebrow">Coordinator</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="avatar" style="margin-left:0;width:32px;height:32px;font-size:12px;">RS</div>
+              <div><p style="margin:0;font-size:13px;font-weight:600;">Mr. R. Sharma</p><p style="margin:0;font-size:11.5px;color:var(--ink-600);">Tower A Pantry Hub · sorts pickup by flat no.</p></div>
+            </div>
+          </div>
+          <div class="bottombar">
+            <button class="btn btn-danger-ghost btn-block">Leave this order</button>
+          </div>
+        </div></div>
+        <div class="frame-caption"><h3>4 · Order tracking — mid‑cycle <span class="badge badge-brand" style="margin-left:6px;">new</span></h3><p>Nothing in the original flow let a household check on an order after confirming it. This screen — reachable from the Orders tab — answers "where are we," and is the one place a household can still back out, with the option placed low‑emphasis but always available.</p></div>
+      </div>
+
+      <!-- SCREEN 5: INVOICE & PAYMENT -->
+      <div class="frame-block">
+        <div class="frame"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>Tower A · 5G</span></div>
+          <div class="app-header" style="padding-bottom:2px;">
+            <div class="row1"><svg class="icon"><use href="#i-back"/></svg><span style="font-size:13px;font-weight:600;">Order #BLK‑9921</span><span class="badge badge-amber">Due in 5 days</span></div>
+          </div>
+          <div class="scroll">
+            <div class="cycle-rail" style="margin:14px 0 6px;">
+              <div class="stage done"><div class="line"></div><div class="dot"></div><div class="lbl">Pooling</div></div>
+              <div class="stage done"><div class="line"></div><div class="dot"></div><div class="lbl">Bidding</div></div>
+              <div class="stage current"><div class="line"></div><div class="dot"></div><div class="lbl">Invoiced</div></div>
+              <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Payment</div></div>
+              <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Delivered</div></div>
+            </div>
+
+            <div class="info-box success" style="margin:14px 0;"><svg class="icon"><use href="#i-check-c"/></svg>
+              <div class="t"><b>Bidding complete.</b> Apex Wholesale won Tower A's pool of 162 items on Day 11, ahead of 4 other suppliers.</div>
+            </div>
+
+            <div class="section-eyebrow" style="margin-top:4px;">Final invoice</div>
+            <div class="list-row"><span style="font-size:13px;">Almond Oil (1L)</span><span class="mono" style="font-size:13px;font-weight:600;">₹360</span></div>
+            <div class="list-row"><span style="font-size:13px;">2× Dishwashing Gel</span><span class="mono" style="font-size:13px;font-weight:600;">₹208</span></div>
+            <div class="list-row"><span style="font-size:13px;">Laundry Detergent</span><span class="mono" style="font-size:13px;font-weight:600;">₹530</span></div>
+            <div class="list-row" style="border-bottom:none;padding-top:14px;border-top:1px solid var(--ink-200);">
+              <span style="font-size:15px;font-weight:700;">Total due</span><span class="mono" style="font-size:20px;font-weight:700;">₹1,287.64</span>
+            </div>
+            <div class="info-box success" style="margin-top:6px;"><svg class="icon" width="16" height="16"><use href="#i-shield"/></svg><div class="t">₹592.36 below MRP — and ₹52.36 below the estimate you saw at checkout.</div></div>
+          </div>
+          <div class="bottombar">
+            <button class="btn btn-primary btn-block" style="background:var(--brand-600);">Pay ₹1,287.64 · UPI or card</button>
+            <p style="text-align:center;font-size:11px;color:var(--ink-400);margin:8px 0 0;">Settles instantly via GPay, PhonePe or Paytm</p>
+          </div>
+        </div></div>
+        <div class="frame-caption"><h3>5 · Invoice &amp; payment</h3><p>The cycle rail replaces the 🎉 banner as the "status changed" signal — quieter and consistent with every other screen. Savings are stated once, in context, instead of four times. Payment CTA reuses the brand color, not a separate green, so the app has one primary‑action color throughout.</p></div>
+      </div>
+
+      <!-- SCREEN 6: POST-PAYMENT DELIVERY TRACKING (NEW) -->
+      <div class="frame-block">
+        <div class="frame"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>Tower A · 5G</span></div>
+          <div class="app-header" style="padding-bottom:2px;">
+            <div class="row1"><svg class="icon"><use href="#i-back"/></svg><span style="font-size:13px;font-weight:600;">Order #BLK‑9921</span><span class="badge badge-success">Paid</span></div>
+          </div>
+          <div class="scroll">
+            <div class="cycle-rail" style="margin:14px 0 6px;">
+              <div class="stage done"><div class="line"></div><div class="dot"></div><div class="lbl">Pooling</div></div>
+              <div class="stage done"><div class="line"></div><div class="dot"></div><div class="lbl">Bidding</div></div>
+              <div class="stage done"><div class="line"></div><div class="dot"></div><div class="lbl">Invoiced</div></div>
+              <div class="stage done"><div class="line"></div><div class="dot"></div><div class="lbl">Payment</div></div>
+              <div class="stage current"><div class="line"></div><div class="dot"></div><div class="lbl">Delivered</div></div>
+            </div>
+            <div style="text-align:center;font-size:12px;color:var(--ink-600);margin-bottom:18px;" class="mono">Out for delivery · ETA today, 6–8 PM</div>
+
+            <div style="border:1px solid var(--ink-200);border-radius:var(--r-md);padding:16px;margin-bottom:16px;">
+              <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;">
+                <div style="width:38px;height:38px;border-radius:50%;background:var(--brand-100);display:flex;align-items:center;justify-content:center;color:var(--brand-700);"><svg class="icon" width="18" height="18"><use href="#i-truck"/></svg></div>
+                <div><p style="margin:0;font-size:13.5px;font-weight:600;">Apex Wholesale dispatch</p><p style="margin:0;font-size:11.5px;color:var(--ink-600);">Vehicle MH‑12‑AB‑4410</p></div>
+              </div>
+              <div style="position:relative;padding-left:20px;">
+                <div style="position:absolute;left:5px;top:4px;bottom:4px;width:1px;background:var(--ink-200);"></div>
+                <div style="position:relative;margin-bottom:16px;"><div style="position:absolute;left:-20px;top:2px;width:9px;height:9px;border-radius:50%;background:var(--brand-600);"></div><p style="margin:0;font-size:12.5px;font-weight:600;">Dispatched from hub warehouse</p><p style="margin:0;font-size:11px;color:var(--ink-400);" class="mono">Today, 11:20 AM</p></div>
+                <div style="position:relative;margin-bottom:16px;"><div style="position:absolute;left:-20px;top:2px;width:9px;height:9px;border-radius:50%;background:var(--brand-600);"></div><p style="margin:0;font-size:12.5px;font-weight:600;">Arrived at Tower A Pantry Hub</p><p style="margin:0;font-size:11px;color:var(--ink-400);" class="mono">Today, 2:05 PM</p></div>
+                <div style="position:relative;"><div style="position:absolute;left:-20px;top:2px;width:9px;height:9px;border-radius:50%;background:var(--ink-200);border:2px solid #fff;"></div><p style="margin:0;font-size:12.5px;font-weight:600;color:var(--ink-400);">Sorted &amp; ready for pickup</p><p style="margin:0;font-size:11px;color:var(--ink-400);">Pending</p></div>
+              </div>
+            </div>
+
+            <div class="info-box"><svg class="icon"><use href="#i-pin"/></svg><div class="t">Pick up from <b>Tower A Pantry Hub</b>, ground floor. Sorted by flat number — bring your order ID.</div></div>
+          </div>
+          <div class="navbar">
+            <div class="nitem"><svg class="icon" width="20" height="20"><use href="#i-store"/></svg>Store</div>
+            <div class="nitem"><svg class="icon" width="20" height="20"><use href="#i-cart"/></svg>Cart</div>
+            <div class="nitem is-active"><svg class="icon" width="20" height="20"><use href="#i-box"/></svg>Orders</div>
+            <div class="nitem"><svg class="icon" width="20" height="20"><use href="#i-user"/></svg>Profile</div>
+          </div>
+        </div></div>
+        <div class="frame-caption"><h3>6 · Delivery tracking <span class="badge badge-brand" style="margin-left:6px;">new</span></h3><p>The flow previously ended at payment. This closes the loop — where the order physically is, and what to do at pickup — reusing the same rail and hub-location pattern from earlier screens.</p></div>
+      </div>
+
+      <!-- SCREEN 7: ORDERS LIST -->
+      <div class="frame-block">
+        <div class="frame"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>Tower A · 5G</span></div>
+          <div class="app-header">
+            <h1 style="margin-top:0;">Orders</h1>
+            <div class="tabbar" style="margin-top:10px;">
+              <div class="tab is-active">Active (2)</div>
+              <div class="tab">Past (11)</div>
+            </div>
+          </div>
+          <div class="scroll">
+            <div style="border:1px solid var(--ink-200);border-radius:var(--r-md);padding:14px;margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span style="font-size:13.5px;font-weight:600;">Cycle #14 · 4 items</span><span class="badge badge-amber">Bidding</span></div>
+              <div class="cycle-rail" style="margin-bottom:2px;">
+                <div class="stage done"><div class="line"></div><div class="dot"></div><div class="lbl">Pooling</div></div>
+                <div class="stage current"><div class="line"></div><div class="dot"></div><div class="lbl">Bidding</div></div>
+                <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Invoiced</div></div>
+                <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Payment</div></div>
+                <div class="stage"><div class="line"></div><div class="dot"></div><div class="lbl">Delivered</div></div>
+              </div>
+            </div>
+            <div style="border:1px solid var(--ink-200);border-radius:var(--r-md);padding:14px;margin-bottom:20px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:10px;"><span style="font-size:13.5px;font-weight:600;">Cycle #13 · 3 items</span><span class="badge badge-neutral">Invoiced</span></div>
+              <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--ink-600);"><span>Order #BLK‑9840</span><span class="mono">Pay by Aug 18</span></div>
+            </div>
+
+            <div class="section-eyebrow">Empty state — Past tab, first-time user</div>
+            <div style="text-align:center;padding:36px 12px;border:1px dashed var(--ink-200);border-radius:var(--r-md);">
+              <svg class="icon" width="28" height="28" style="color:var(--ink-400);margin-bottom:10px;"><use href="#i-box"/></svg>
+              <p style="margin:0 0 4px;font-size:13.5px;font-weight:600;">No past orders yet</p>
+              <p style="margin:0 0 14px;font-size:12px;color:var(--ink-600);">Completed orders will show up here once a cycle is delivered.</p>
+              <button class="btn btn-secondary btn-sm">Browse the hub</button>
+            </div>
+
+            <div class="section-eyebrow">Error state — hub unreachable</div>
+            <div style="text-align:center;padding:28px 12px;border:1px solid var(--danger-100);background:var(--danger-100);border-radius:var(--r-md);">
+              <svg class="icon" width="24" height="24" style="color:var(--danger-600);margin-bottom:8px;"><use href="#i-alert"/></svg>
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:var(--danger-700);">Couldn't load your orders</p>
+              <p style="margin:0 0 12px;font-size:11.5px;color:var(--danger-700);">Check your connection and try again.</p>
+              <button class="btn btn-ghost btn-sm">Retry</button>
+            </div>
+          </div>
+          <div class="navbar">
+            <div class="nitem"><svg class="icon" width="20" height="20"><use href="#i-store"/></svg>Store</div>
+            <div class="nitem"><svg class="icon" width="20" height="20"><use href="#i-cart"/></svg>Cart</div>
+            <div class="nitem is-active"><svg class="icon" width="20" height="20"><use href="#i-box"/></svg>Orders</div>
+            <div class="nitem"><svg class="icon" width="20" height="20"><use href="#i-user"/></svg>Profile</div>
+          </div>
+        </div></div>
+        <div class="frame-caption"><h3>7 · Orders list <span class="badge badge-brand" style="margin-left:6px;">new</span></h3><p>Every order shows the same rail at a glance, so scanning this list answers "what needs my attention" without opening each one. Empty and error states shown stacked here for reference — in the app only one renders at a time.</p></div>
+      </div>
+
+      <!-- SCREEN 8: STATES / TOASTS -->
+      <div class="frame-block">
+        <div class="frame"><div class="screen">
+          <div class="statusbar"><span>9:41</span><span>Tower A · 5G</span></div>
+          <div class="app-header"><h1 style="margin-top:0;">Component states</h1><div class="sub">Reference — not a real screen</div></div>
+          <div class="scroll">
+            <div class="section-eyebrow" style="margin-top:0;">Success toast</div>
+            <div style="display:flex;align-items:center;gap:8px;background:var(--ink-900);color:#fff;border-radius:var(--r-md);padding:10px 14px;margin-bottom:18px;">
+              <svg class="icon" width="16" height="16" style="color:var(--success-600)"><use href="#i-check-c"/></svg>
+              <span style="font-size:12.5px;">Added to cart</span>
+            </div>
+
+            <div class="section-eyebrow">Loading — product list</div>
+            <div class="prod-row"><div class="thumb skel" style="border-radius:var(--r-md)"></div><div class="prod-meta"><p class="skel" style="height:12px;width:75%;margin-bottom:8px;"></p><p class="skel" style="height:10px;width:50%;margin-bottom:8px;"></p><p class="skel" style="height:10px;width:35%;"></p></div></div>
+            <div class="prod-row"><div class="thumb skel" style="border-radius:var(--r-md)"></div><div class="prod-meta"><p class="skel" style="height:12px;width:60%;margin-bottom:8px;"></p><p class="skel" style="height:10px;width:40%;margin-bottom:8px;"></p><p class="skel" style="height:10px;width:30%;"></p></div></div>
+
+            <div class="section-eyebrow">Empty cart</div>
+            <div style="text-align:center;padding:28px 12px;border:1px dashed var(--ink-200);border-radius:var(--r-md);margin-bottom:18px;">
+              <svg class="icon" width="26" height="26" style="color:var(--ink-400);margin-bottom:8px;"><use href="#i-cart"/></svg>
+              <p style="margin:0 0 4px;font-size:13px;font-weight:600;">Your cart is empty</p>
+              <p style="margin:0 0 12px;font-size:11.5px;color:var(--ink-600);">Add items from the hub to start this cycle's household order.</p>
+              <button class="btn btn-secondary btn-sm">Browse the hub</button>
+            </div>
+
+            <div class="section-eyebrow">Payment failed</div>
+            <div class="info-box" style="border-color:var(--danger-100);background:var(--danger-100);">
+              <svg class="icon" width="18" height="18" style="color:var(--danger-600)"><use href="#i-x"/></svg>
+              <div class="t" style="color:var(--danger-700);"><b>Payment didn't go through.</b> No amount was deducted. Your order is held for 24 hours — retry anytime before then.</div>
+            </div>
+          </div>
+        </div></div>
+        <div class="frame-caption"><h3>8 · States reference <span class="badge badge-brand" style="margin-left:6px;">new</span></h3><p>Loading, empty and error treatments consolidated here so every screen in the app draws from the same set instead of inventing its own each time.</p></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- =========================================================
+       FLOW CHANGES
+  ========================================================== -->
+  <div class="section">
+    <div class="section-head"><h2>4 · Flow changes &amp; missing states</h2></div>
+    <div class="comp-grid">
+      <div>
+        <div class="comp-label">01 — Mid‑cycle order tracking</div>
+        <p class="section-note" style="margin:0">Added. Previously a household confirmed its pledge and had nowhere to check on it until the invoice appeared. Now it's one tap away from the Orders tab at every stage.</p>
+      </div>
+      <div>
+        <div class="comp-label">02 — Leave an order before bidding closes</div>
+        <p class="section-note" style="margin:0">Added. The cart's commitment text now says explicitly that leaving is possible, and the tracking screen carries a low‑emphasis "Leave this order" action while pooling/bidding is still open. It disappears once bidding closes, since the pool is locked at that point.</p>
+      </div>
+      <div>
+        <div class="comp-label">03 — Post‑payment delivery tracking</div>
+        <p class="section-note" style="margin:0">Added. The original flow ended at "Pay now." Households pooling grocery money need to know it arrived and where to collect it — this closes that gap.</p>
+      </div>
+      <div>
+        <div class="comp-label">04 — Orders list with active/past split</div>
+        <p class="section-note" style="margin:0">Added. Referenced by the bottom nav in the originals but never designed. Doubles as the entry point for tracking and for reordering from a past cycle.</p>
+      </div>
+      <div>
+        <div class="comp-label">05 — One participation metric, not three</div>
+        <p class="section-note" style="margin:0">Changed. The hub now leads with a single "households joined this cycle" figure; per‑product counts stay as secondary, clearly‑scoped social proof rather than competing headline numbers.</p>
+      </div>
+      <div>
+        <div class="comp-label">06 — Loading, empty and error states</div>
+        <p class="section-note" style="margin:0">Added throughout: skeleton rows for the product list, an empty cart, an empty order history, a failed hub load, and a failed payment — none of which existed in the source screens.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="doc-footer">Community Ordering — design system reference · IBM Plex Sans / IBM Plex Mono</footer>
+</div>
+</body>
+</html>

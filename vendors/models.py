@@ -1,6 +1,8 @@
 from django.contrib.gis.db import models
 
 from location_module.models import ServiceLocation
+from items.models import Item
+from django.conf import settings
 
 
 class Vendor(models.Model):
@@ -13,6 +15,13 @@ class Vendor(models.Model):
         ServiceLocation,
         on_delete=models.PROTECT,
         related_name="home_vendors",
+        blank=True,
+        null=True,
+    )
+    partner_user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name="vendor_profile",
         blank=True,
         null=True,
     )
@@ -55,3 +64,17 @@ class VendorServiceableLocation(models.Model):
 
     def __str__(self):
         return f"{self.vendor} -> {self.service_location}"
+
+
+class VendorItem(models.Model):
+    vendor = models.ForeignKey(Vendor, on_delete=models.CASCADE, related_name="vendor_items")
+    item = models.ForeignKey(Item, on_delete=models.CASCADE, related_name="vendor_items")
+
+    class Meta:
+        db_table = "vendor_items"
+        constraints = [
+            models.UniqueConstraint(fields=["vendor", "item"], name="unique_vendor_item")
+        ]
+
+    def __str__(self):
+        return f"{self.vendor} -> {self.item}"

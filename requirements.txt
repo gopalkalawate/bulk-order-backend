@@ -8,3 +8,4 @@ typing_extensions==4.15.0
 PyJWT==2.8.0
 GeoDjango==4.2.30
 django-redis==5.4.0
+django-cors-headers==4.9.0

@@ -1,5 +1,202 @@
 # API Endpoints
 
+## Ordering
+
+All ordering endpoints require JWT authentication.
+
+Header:
+
+```http
+Authorization: Bearer <ACCESS_TOKEN>
+```
+
+### Create Order Cycle
+
+`POST /order-cycles` — ADMIN only.
+
+Request body:
+
+```json
+{
+  "service_location_id": 1,
+  "cycle_date": "2026-07-20",
+  "order_window_start": "2026-07-20T08:00:00Z",
+  "order_window_end": "2026-07-20T12:00:00Z",
+  "quote_window_end": "2026-07-20T15:00:00Z"
+}
+```
+
+Curl:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/order-cycles" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "service_location_id": 1,
+    "cycle_date": "2026-07-20",
+    "order_window_start": "2026-07-20T08:00:00Z",
+    "order_window_end": "2026-07-20T12:00:00Z",
+    "quote_window_end": "2026-07-20T15:00:00Z"
+  }'
+```
+
+### Get Current Order Cycle
+
+`GET /order-cycles/current` — CUSTOMER only. Uses the caller's assigned service location.
+
+```bash
+curl -X GET "http://127.0.0.1:8000/order-cycles/current" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Get Order Cycle
+
+`GET /order-cycles/<cycle_id>` — ADMIN or a customer at that cycle's service location.
+
+```bash
+curl -X GET "http://127.0.0.1:8000/order-cycles/1" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Close Order Cycle
+
+`POST /order-cycles/<cycle_id>/close` — ADMIN only. Snapshots confirmed orders and creates eligible vendor quote invitations.
+
+```bash
+curl -X POST "http://127.0.0.1:8000/order-cycles/1/close" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Select Lowest Quotes
+
+`POST /order-cycles/<cycle_id>/select-lowest-quotes` — ADMIN only. Selects the lowest submitted quote that can fully supply each item and creates purchase orders.
+
+```bash
+curl -X POST "http://127.0.0.1:8000/order-cycles/1/select-lowest-quotes" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Get Cart
+
+`GET /order-cycles/<cycle_id>/cart` — CUSTOMER only.
+
+```bash
+curl -X GET "http://127.0.0.1:8000/order-cycles/1/cart" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Add Cart Item
+
+`POST /order-cycles/<cycle_id>/cart/items` — CUSTOMER only. Adding the same item replaces its quantity and notes.
+
+Request body:
+
+```json
+{
+  "item_id": 1,
+  "quantity": "2.50",
+  "notes": "Prefer small grains"
+}
+```
+
+```bash
+curl -X POST "http://127.0.0.1:8000/order-cycles/1/cart/items" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"item_id": 1, "quantity": "2.50", "notes": "Prefer small grains"}'
+```
+
+### Update or Remove Cart Item
+
+`PATCH /order-cycles/<cycle_id>/cart/items/<item_id>` and `DELETE /order-cycles/<cycle_id>/cart/items/<item_id>` — CUSTOMER only.
+
+```bash
+curl -X PATCH "http://127.0.0.1:8000/order-cycles/1/cart/items/1" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"quantity": "3.00"}'
+
+curl -X DELETE "http://127.0.0.1:8000/order-cycles/1/cart/items/1" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Checkout Cart and Get Orders
+
+`POST /order-cycles/<cycle_id>/checkout` confirms the active cart and creates a new order; a customer may place multiple orders in the same cycle. `GET /orders?cycle_id=1` lists all of the caller's orders for that cycle. Both are CUSTOMER-only.
+
+```bash
+curl -X POST "http://127.0.0.1:8000/order-cycles/1/checkout" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+
+curl -X GET "http://127.0.0.1:8000/orders?cycle_id=1" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Vendor Quote Endpoints
+
+Linked PARTNER users may read their invitations, replace draft quote lines, and submit before the quote deadline.
+
+```bash
+curl -X GET "http://127.0.0.1:8000/vendor-quotes" \
+  -H "Authorization: Bearer <PARTNER_ACCESS_TOKEN>"
+
+curl -X GET "http://127.0.0.1:8000/vendor-quotes/1" \
+  -H "Authorization: Bearer <PARTNER_ACCESS_TOKEN>"
+```
+
+`PUT /vendor-quotes/<quote_id>/items` replaces all current draft lines.
+
+Request body:
+
+```json
+[
+  {"item_id": 1, "unit_price": "42.50", "available_quantity": "25.00"},
+  {"item_id": 2, "unit_price": "18.00"}
+]
+```
+
+```bash
+curl -X PUT "http://127.0.0.1:8000/vendor-quotes/1/items" \
+  -H "Authorization: Bearer <PARTNER_ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '[
+    {"item_id": 1, "unit_price": "42.50", "available_quantity": "25.00"},
+    {"item_id": 2, "unit_price": "18.00"}
+  ]'
+
+curl -X POST "http://127.0.0.1:8000/vendor-quotes/1/submit" \
+  -H "Authorization: Bearer <PARTNER_ACCESS_TOKEN>"
+```
+
+### Get Purchase Orders
+
+`GET /purchase-orders?cycle_id=1` — ADMIN sees all POs; a linked PARTNER sees only their vendor's POs.
+
+```bash
+curl -X GET "http://127.0.0.1:8000/purchase-orders?cycle_id=1" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
+### Configure Vendor Partner and Eligible Items
+
+These endpoints are ADMIN-only. A linked user must have role `PARTNER`.
+
+```bash
+curl -X POST "http://127.0.0.1:8000/vendors/1/partner" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"partner_user_id": "<PARTNER_USER_UUID>"}'
+
+curl -X POST "http://127.0.0.1:8000/vendors/1/items" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -H "Content-Type: application/json" \
+  -d '{"item_id": 1}'
+
+curl -X DELETE "http://127.0.0.1:8000/vendors/1/items/1" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
+```
+
 ## Items
 
 All item endpoints require JWT authentication.
