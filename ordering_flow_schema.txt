@@ -155,8 +155,7 @@ CREATE TABLE user_orders (
     user_id        BIGINT NOT NULL REFERENCES users(user_id),
     cart_id        BIGINT REFERENCES carts(cart_id),   -- traceability back to the cart it was checked out from
     status         user_order_status NOT NULL DEFAULT 'pending',
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (cycle_id, user_id)   -- one order per user per cycle
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE TABLE user_order_items (

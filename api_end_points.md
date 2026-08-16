@@ -123,7 +123,7 @@ curl -X DELETE "http://127.0.0.1:8000/order-cycles/1/cart/items/1" \
 
 ### Checkout Cart and Get Orders
 
-`POST /order-cycles/<cycle_id>/checkout` confirms the active cart. `GET /orders?cycle_id=1` lists the caller's orders. Both are CUSTOMER-only.
+`POST /order-cycles/<cycle_id>/checkout` confirms the active cart and creates a new order; a customer may place multiple orders in the same cycle. `GET /orders?cycle_id=1` lists all of the caller's orders for that cycle. Both are CUSTOMER-only.
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/order-cycles/1/checkout" \

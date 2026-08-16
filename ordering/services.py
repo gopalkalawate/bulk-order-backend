@@ -28,11 +28,12 @@ def checkout_cart(cycle_id, user):
     cart_items = list(cart.items.select_related("item").all())
     if not cart_items:
         raise ValidationError("The cart is empty")
-    order, _ = UserOrder.objects.update_or_create(
-        cycle=cycle, user=user,
-        defaults={"cart": cart, "status": UserOrder.Status.CONFIRMED},
+    order = UserOrder.objects.create(
+        cycle=cycle,
+        user=user,
+        cart=cart,
+        status=UserOrder.Status.CONFIRMED,
     )
-    order.items.all().delete()
     UserOrderItem.objects.bulk_create([
         UserOrderItem(user_order=order, item=line.item, quantity=line.quantity, notes=line.notes)
         for line in cart_items

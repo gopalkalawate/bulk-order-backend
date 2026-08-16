@@ -76,7 +76,6 @@ class UserOrder(models.Model):
 
     class Meta:
         db_table = "user_orders"
-        constraints = [models.UniqueConstraint(fields=["cycle", "user"], name="one_order_per_user_cycle")]
 
 
 class UserOrderItem(models.Model):

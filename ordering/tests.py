@@ -11,7 +11,7 @@ from items.models import Item
 from location_module.models import ServiceLocation, UserServiceLocation
 from users.models import User
 from vendors.models import Vendor, VendorItem, VendorServiceableLocation
-from .models import OrderCycle, PurchaseOrder, VendorQuote
+from .models import OrderCycle, PurchaseOrder, UserOrder, VendorQuote
 
 
 class OrderingFlowTests(APITestCase):
@@ -42,6 +42,25 @@ class OrderingFlowTests(APITestCase):
         response = self.client.post(reverse("close_order_cycle", args=[cycle.id]))
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(VendorQuote.objects.filter(cycle=cycle, vendor=self.vendor).exists())
+
+    def test_customer_can_checkout_multiple_orders_in_the_same_cycle(self):
+        cycle = self.cycle()
+        self.client.force_authenticate(self.customer)
+
+        self.client.post(reverse("add_cart_item", args=[cycle.id]), {"item_id": self.item.id, "quantity": "2.00"}, format="json")
+        first_checkout = self.client.post(reverse("checkout", args=[cycle.id]))
+
+        self.client.post(reverse("add_cart_item", args=[cycle.id]), {"item_id": self.item.id, "quantity": "3.00"}, format="json")
+        second_checkout = self.client.post(reverse("checkout", args=[cycle.id]))
+
+        self.assertEqual(first_checkout.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(second_checkout.status_code, status.HTTP_201_CREATED)
+        self.assertNotEqual(first_checkout.data["id"], second_checkout.data["id"])
+        self.assertEqual(UserOrder.objects.filter(cycle=cycle, user=self.customer).count(), 2)
+
+        response = self.client.get(reverse("orders"), {"cycle_id": cycle.id})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
 
     def test_lowest_eligible_quote_creates_purchase_order(self):
         cycle = self.cycle()
